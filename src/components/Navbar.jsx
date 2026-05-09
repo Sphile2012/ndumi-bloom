@@ -117,7 +117,7 @@ export default function Navbar() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.16, ease: "easeOut" }}
-              className="fixed top-16 left-0 right-0 z-50 bg-background border-b border-border/40 shadow-lg"
+              className="fixed top-16 left-0 right-0 z-50 bg-background border-b border-border/40 shadow-lg max-h-[calc(100vh-4rem)] overflow-y-auto"
             >
               <div className="max-w-6xl mx-auto px-6 py-4 space-y-0.5">
 

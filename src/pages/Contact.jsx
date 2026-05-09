@@ -28,7 +28,7 @@ const contactItems = [
   {
     icon: Clock,
     title: "Hours",
-    detail: "Mon–Sun: 8am – 4pm",
+    detail: "Mon–Sat: 8am – 4pm (Closed Sundays)",
     action: null,
     actionLabel: null,
   },

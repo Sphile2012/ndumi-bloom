@@ -58,7 +58,7 @@ export default function Footer() {
               </a>
               <div className="flex items-center gap-3 opacity-70">
                 <Clock className="w-4 h-4 shrink-0" />
-                Mon–Sun: 8am – 4pm
+                Mon–Sat: 8am – 4pm (Closed Sundays)
               </div>
             </div>
           </div>

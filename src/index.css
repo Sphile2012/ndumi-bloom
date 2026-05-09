@@ -124,3 +124,17 @@
 }
 
 /* ── Mobile: base font is 18px, desktop is 16px (set above) ── */
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth touch scrolling */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}

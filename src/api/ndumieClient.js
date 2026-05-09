@@ -19,7 +19,7 @@ function getAdminToken() {
 }
 
 // ── Core fetch ────────────────────────────────────────────────────────────────
-async function request(path, options = {}) {
+async function request(path, options = {}, retries = 2) {
   const headers = { 'Content-Type': 'application/json' };
 
   // Attach admin token for any write operation
@@ -30,16 +30,29 @@ async function request(path, options = {}) {
 
   Object.assign(headers, options.headers || {});
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(`${BASE}${path}`, { ...options, headers });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw Object.assign(new Error(err.message || 'Request failed'), {
-      status: res.status,
-      data: err,
-    });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: res.statusText }));
+        throw Object.assign(new Error(err.message || 'Request failed'), {
+          status: res.status,
+          data: err,
+        });
+      }
+      return res.json();
+    } catch (err) {
+      // Don't retry on 4xx client errors
+      if (err.status >= 400 && err.status < 500) throw err;
+      // Retry on network errors or 5xx
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+        continue;
+      }
+      throw err;
+    }
   }
-  return res.json();
 }
 
 // ── Bookings ──────────────────────────────────────────────────────────────────

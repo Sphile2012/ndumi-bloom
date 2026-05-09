@@ -459,7 +459,7 @@ function Dashboard() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-0 mb-6 border-b border-border overflow-x-auto">
+        <div className="flex gap-0 mb-6 border-b border-border overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
           {[
             { id: "services",      label: "Services",         emoji: "💅" },
             { id: "enrolled",      label: "Enrolled Courses", emoji: "🎓" },

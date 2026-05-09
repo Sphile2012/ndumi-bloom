@@ -102,7 +102,7 @@ export default function HeroSection({ heroImage }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.5 }}
-            className="flex items-center gap-8 pt-8 border-t border-white/10"
+            className="flex flex-wrap items-center gap-6 sm:gap-8 pt-8 border-t border-white/10"
           >
             {stats.map((stat, i) => (
               <div key={stat.label}>

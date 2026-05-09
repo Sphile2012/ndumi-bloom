@@ -135,7 +135,7 @@ export default function Book() {
   const isLastStep = step === LAST_STEP;
 
   return (
-    <div className="min-h-screen py-12 sm:py-20 px-4 sm:px-6">
+    <div className="min-h-screen py-8 sm:py-12 md:py-20 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto">
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
@@ -186,7 +186,7 @@ export default function Book() {
               animate="center"
               exit="exit"
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="p-6 sm:p-10"
+              className="p-4 sm:p-6 md:p-10"
             >
 
               {/* STEP 1: Personal Details */}
@@ -261,14 +261,15 @@ export default function Book() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium mb-3 block">Date *</Label>
-                    <div className="flex justify-center">
+                    <div className="flex justify-center overflow-x-auto">
                       <Calendar mode="single" selected={date} onSelect={handleDateSelect}
                         disabled={(d) => {
                           const day = d.getDay();
                           const today = new Date();
                           today.setHours(0, 0, 0, 0);
-                          return d < today || day === 0; // disable past dates and Sundays
+                          return d < today || day === 0;
                         }}
+                        className="rounded-xl border border-border"
                       />
                     </div>
                     {date && <p className="text-center text-sm font-medium text-primary mt-2">📅 {format(date, "EEEE, d MMMM yyyy")}</p>}
