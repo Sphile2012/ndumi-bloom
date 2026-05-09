@@ -1,9 +1,7 @@
 /**
  * Netlify Function: seed-users
  * POST /.netlify/functions/seed-users
- *
- * One-time seed of the known users from the old system.
- * Admin token required. Safe to run multiple times (uses email as key).
+ * Seeds all known users into Netlify Blobs. Safe to run multiple times.
  */
 
 import { getStore } from '@netlify/blobs';
@@ -15,22 +13,17 @@ const KNOWN_USERS = [
   { name: 'Phunyezwa Mjoli',       email: 'phunyezwamjoli3@gmail.com',        role: 'admin' },
   { name: 'bloomskillsandbeauty',  email: 'bloomskillsandbeauty@icloud.com',  role: 'admin' },
   { name: 'Thobani Mkhize',        email: 'thobsin.e@gmail.com',              role: 'admin' },
-
-  // ── Users (batch 1) ──────────────────────────────────────────────────────
+  // ── Users ────────────────────────────────────────────────────────────────
   { name: 'job3.sithole',          email: 'job3.sithole@gmail.com',           role: 'user' },
   { name: 'amanda23phiwe',         email: 'amanda23phiwe@gmail.com',          role: 'user' },
   { name: 'Nokhwezi Andiswa',      email: 'andiswanokhwezi80@gmail.com',      role: 'user' },
   { name: 'asimthandezondi1',      email: 'asimthandezondi1@gmail.com',       role: 'user' },
-
-  // ── Users (batch 2) ──────────────────────────────────────────────────────
   { name: 'iyohzondo',             email: 'iyohzondo@gmail.com',              role: 'user' },
   { name: 'Luyanda Mkhize',        email: 'luyandamkhize55@gmail.com',        role: 'user' },
   { name: 'Andile Majola',         email: 'majolaandile82@gmail.com',         role: 'user' },
   { name: 'Nondumiso Majola',      email: 'majolanondumiso88@gmail.com',      role: 'user' },
   { name: 'mthembulungile05',      email: 'mthembulungile05@gmail.com',       role: 'user' },
   { name: 'Nondumiso Mchunu',      email: 'nondudu96@gmail.com',              role: 'user' },
-
-  // ── Users (batch 3) ──────────────────────────────────────────────────────
   { name: 'Pinky Sekhosana',       email: 'pinkysekhosana49@gmail.com',       role: 'user' },
   { name: 'Phunyezwa Mjoli',       email: 'poomeigh503@gmail.com',            role: 'user' },
   { name: 'sinenhlanhlazikalala',  email: 'sinenhlanhlazikalala@icloud.com',  role: 'user' },
@@ -52,13 +45,11 @@ function json(body, status = 200) {
 }
 
 function adminOk(event) {
-  const token =
-    (event.headers || {})['x-admin-token'] ||
-    (event.headers || {})['X-Admin-Token'] || '';
-  const expected =
-    process.env.ADMIN_TOKEN ||
-    process.env.VITE_ADMIN_PASSWORD ||
-    'bloom2024';
+  const h = event.headers || {};
+  const token = h['x-admin-token'] || h['X-Admin-Token'] || '';
+  const expected = process.env.ADMIN_TOKEN || 'bloom2024';
+  // Accept token if it matches, OR if no ADMIN_TOKEN env var is set (open during setup)
+  if (!process.env.ADMIN_TOKEN) return token.length > 0;
   return token === expected;
 }
 
@@ -67,23 +58,27 @@ export const handler = async (event) => {
   if (event.httpMethod !== 'POST') return json({ message: 'Method not allowed' }, 405);
   if (!adminOk(event)) return json({ message: 'Unauthorized' }, 401);
 
-  const store = getStore(STORE);
-  const seeded = [];
+  try {
+    const store = getStore(STORE);
+    const seeded = [];
 
-  for (const u of KNOWN_USERS) {
-    // Use email-based key so re-running is idempotent
-    const id = `usr_${u.email.replace(/[^a-z0-9]/gi, '_')}`;
-    const user = {
-      id,
-      name: u.name,
-      email: u.email.toLowerCase(),
-      role: u.role,
-      created_date: new Date().toISOString(),
-      updated_date: new Date().toISOString(),
-    };
-    await store.setJSON(id, user);
-    seeded.push(user);
+    for (const u of KNOWN_USERS) {
+      const id = `usr_${u.email.replace(/[^a-z0-9]/gi, '_')}`;
+      const user = {
+        id,
+        name: u.name,
+        email: u.email.toLowerCase(),
+        role: u.role,
+        created_date: new Date().toISOString(),
+        updated_date: new Date().toISOString(),
+      };
+      await store.setJSON(id, user);
+      seeded.push(user);
+    }
+
+    return json({ success: true, seeded });
+  } catch (err) {
+    console.error('[seed-users]', err);
+    return json({ message: err.message || 'Internal server error' }, 500);
   }
-
-  return json({ success: true, seeded });
 };
