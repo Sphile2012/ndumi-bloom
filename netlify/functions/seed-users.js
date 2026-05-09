@@ -1,19 +1,9 @@
-/**
- * Netlify Function: seed-users
- * POST /.netlify/functions/seed-users
- * Seeds all known users into Netlify Blobs. Safe to run multiple times.
- */
-
-import { getStore } from '@netlify/blobs';
-
-const STORE = 'users';
+import { createClient } from '@supabase/supabase-js';
 
 const KNOWN_USERS = [
-  // ── Admins ──────────────────────────────────────────────────────────────
   { name: 'Phunyezwa Mjoli',       email: 'phunyezwamjoli3@gmail.com',        role: 'admin' },
   { name: 'bloomskillsandbeauty',  email: 'bloomskillsandbeauty@icloud.com',  role: 'admin' },
   { name: 'Thobani Mkhize',        email: 'thobsin.e@gmail.com',              role: 'admin' },
-  // ── Users ────────────────────────────────────────────────────────────────
   { name: 'job3.sithole',          email: 'job3.sithole@gmail.com',           role: 'user' },
   { name: 'amanda23phiwe',         email: 'amanda23phiwe@gmail.com',          role: 'user' },
   { name: 'Nokhwezi Andiswa',      email: 'andiswanokhwezi80@gmail.com',      role: 'user' },
@@ -31,7 +21,7 @@ const KNOWN_USERS = [
   { name: 'yamkela8946',           email: 'yamkela8946@gmail.com',            role: 'user' },
 ];
 
-function json(body, status = 200) {
+function respond(body, status = 200) {
   return {
     statusCode: status,
     headers: {
@@ -44,41 +34,47 @@ function json(body, status = 200) {
   };
 }
 
-function adminOk(event) {
+function isAdmin(event) {
   const h = event.headers || {};
   const token = h['x-admin-token'] || h['X-Admin-Token'] || '';
   const expected = process.env.ADMIN_TOKEN || '';
-  // Accept token if it matches, OR if no ADMIN_TOKEN env var is set (open during setup)
-  if (!process.env.ADMIN_TOKEN) return token.length > 0;
+  if (!expected) return token.length > 0;
   return token === expected;
 }
 
+function getSupabase() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error('Supabase env vars not set');
+  return createClient(url, key);
+}
+
 export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return json({});
-  if (event.httpMethod !== 'POST') return json({ message: 'Method not allowed' }, 405);
-  if (!adminOk(event)) return json({ message: 'Unauthorized' }, 401);
+  if (event.httpMethod === 'OPTIONS') return respond({});
+  if (event.httpMethod !== 'POST') return respond({ message: 'Method not allowed' }, 405);
+  if (!isAdmin(event)) return respond({ message: 'Unauthorized' }, 401);
 
   try {
-    const store = getStore(STORE);
-    const seeded = [];
+    const supabase = getSupabase();
+    const users = KNOWN_USERS.map(u => ({
+      id: `usr_${u.email.replace(/[^a-z0-9]/gi, '_')}`,
+      name: u.name,
+      email: u.email.toLowerCase(),
+      role: u.role,
+      created_date: new Date().toISOString(),
+      updated_date: new Date().toISOString(),
+    }));
 
-    for (const u of KNOWN_USERS) {
-      const id = `usr_${u.email.replace(/[^a-z0-9]/gi, '_')}`;
-      const user = {
-        id,
-        name: u.name,
-        email: u.email.toLowerCase(),
-        role: u.role,
-        created_date: new Date().toISOString(),
-        updated_date: new Date().toISOString(),
-      };
-      await store.setJSON(id, user);
-      seeded.push(user);
-    }
+    const { data, error } = await supabase
+      .from('users')
+      .upsert(users, { onConflict: 'email' })
+      .select();
 
-    return json({ success: true, seeded });
+    if (error) throw error;
+    return respond({ success: true, seeded: data });
+
   } catch (err) {
-    console.error('[seed-users]', err);
-    return json({ message: err.message || 'Internal server error' }, 500);
+    console.error('[seed-users]', err.message);
+    return respond({ message: err.message || 'Internal server error' }, 500);
   }
 };

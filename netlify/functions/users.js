@@ -1,22 +1,10 @@
-/**
- * Netlify Function: users
- * GET    /.netlify/functions/users          - list all users (admin only)
- * POST   /.netlify/functions/users          - create user (admin only)
- * PATCH  /.netlify/functions/users/:id      - update user role (admin only)
- * DELETE /.netlify/functions/users/:id      - delete user (admin only)
- *
- * Storage: Netlify Blobs
- */
-
-import { getStore } from '@netlify/blobs';
-
-const STORE = 'users';
+import { createClient } from '@supabase/supabase-js';
 
 function uid() {
   return `usr_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-function json(body, status = 200) {
+function respond(body, status = 200) {
   return {
     statusCode: status,
     headers: {
@@ -29,87 +17,85 @@ function json(body, status = 200) {
   };
 }
 
-function getSegment(event) {
+function getId(event) {
   const path = event.rawPath || event.path || '';
-  const match = path.match(/\/users\/([^/?]+)/);
+  const match = path.match(/\/users\/([^/?#]+)/);
   return match ? match[1] : null;
 }
 
-function adminOk(event) {
-  const headers = event.headers || {};
-  const token = headers['x-admin-token'] || headers['X-Admin-Token'] || '';
+function isAdmin(event) {
+  const h = event.headers || {};
+  const token = h['x-admin-token'] || h['X-Admin-Token'] || '';
   const expected = process.env.ADMIN_TOKEN || '';
-  if (!process.env.ADMIN_TOKEN) return token.length > 0;
+  if (!expected) return token.length > 0;
   return token === expected;
 }
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return json({});
-  if (!adminOk(event)) return json({ message: 'Unauthorized' }, 401);
+function getSupabase() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error('Supabase env vars not set');
+  return createClient(url, key);
+}
 
-  const store = getStore(STORE);
-  const id = getSegment(event);
+export const handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') return respond({});
+  if (!isAdmin(event)) return respond({ message: 'Unauthorized' }, 401);
+
   const method = event.httpMethod;
+  const id = getId(event);
 
   try {
-    /* ── GET /users ──────────────────────────────────────────────────── */
+    const supabase = getSupabase();
+
     if (method === 'GET' && !id) {
-      const { blobs } = await store.list();
-      const rows = await Promise.all(
-        blobs.map(({ key }) => store.get(key, { type: 'json' }).catch(() => null))
-      );
-      const list = rows
-        .filter(Boolean)
-        .sort((a, b) => {
-          // admins first, then by name
-          if (a.role === 'admin' && b.role !== 'admin') return -1;
-          if (b.role === 'admin' && a.role !== 'admin') return 1;
-          return (a.name || '').localeCompare(b.name || '');
-        });
-      return json(list);
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('role', { ascending: true })
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return respond(data || []);
     }
 
-    /* ── POST /users ─────────────────────────────────────────────────── */
     if (method === 'POST' && !id) {
-      const data = JSON.parse(event.body || '{}');
-      if (!data.email?.trim()) return json({ message: 'email is required' }, 400);
+      const body = JSON.parse(event.body || '{}');
+      if (!body.email?.trim()) return respond({ message: 'email is required' }, 400);
       const user = {
         id: uid(),
-        name: data.name || '',
-        email: data.email.trim().toLowerCase(),
-        role: data.role === 'admin' ? 'admin' : 'user',
+        name: body.name || '',
+        email: body.email.trim().toLowerCase(),
+        role: body.role === 'admin' ? 'admin' : 'user',
         created_date: new Date().toISOString(),
         updated_date: new Date().toISOString(),
       };
-      await store.setJSON(user.id, user);
-      return json(user, 201);
+      const { data, error } = await supabase.from('users').upsert(user, { onConflict: 'email' }).select().single();
+      if (error) throw error;
+      return respond(data, 201);
     }
 
-    /* ── PATCH /users/:id ────────────────────────────────────────────── */
     if (method === 'PATCH' && id) {
-      const existing = await store.get(id, { type: 'json' });
-      if (!existing) return json({ message: 'User not found' }, 404);
       const updates = JSON.parse(event.body || '{}');
-      const updated = {
-        ...existing,
-        ...updates,
-        id,
-        updated_date: new Date().toISOString(),
-      };
-      await store.setJSON(id, updated);
-      return json(updated);
+      const { data, error } = await supabase
+        .from('users')
+        .update({ ...updates, updated_date: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return respond(data);
     }
 
-    /* ── DELETE /users/:id ───────────────────────────────────────────── */
     if (method === 'DELETE' && id) {
-      await store.delete(id);
-      return json({ success: true });
+      const { error } = await supabase.from('users').delete().eq('id', id);
+      if (error) throw error;
+      return respond({ success: true });
     }
 
-    return json({ message: 'Method not allowed' }, 405);
+    return respond({ message: 'Method not allowed' }, 405);
 
   } catch (err) {
-    console.error('[users fn]', err);
-    return json({ message: err.message || 'Internal server error' }, 500);
+    console.error('[users]', err.message);
+    return respond({ message: err.message || 'Internal server error' }, 500);
   }
 };

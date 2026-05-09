@@ -1,14 +1,6 @@
-/**
- * Netlify Function: login
- * POST /.netlify/functions/login
- *
- * Email-only login. If the email exists in the users store with role=admin,
- * the session is granted. No password required.
- */
+import { createClient } from '@supabase/supabase-js';
 
-import { getStore } from '@netlify/blobs';
-
-function json(body, status = 200) {
+function respond(body, status = 200) {
   return {
     statusCode: status,
     headers: {
@@ -21,37 +13,35 @@ function json(body, status = 200) {
   };
 }
 
+function getSupabase() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error('Supabase env vars not set');
+  return createClient(url, key);
+}
+
 export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return json({});
-  if (event.httpMethod !== 'POST') return json({ message: 'Method not allowed' }, 405);
+  if (event.httpMethod === 'OPTIONS') return respond({});
+  if (event.httpMethod !== 'POST') return respond({ message: 'Method not allowed' }, 405);
 
   try {
     const { email } = JSON.parse(event.body || '{}');
+    if (!email?.trim()) return respond({ message: 'Email is required' }, 400);
 
-    if (!email?.trim()) {
-      return json({ message: 'Email address is required' }, 400);
-    }
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email.trim().toLowerCase())
+      .single();
 
-    const store = getStore('users');
-    const { blobs } = await store.list();
-    const rows = await Promise.all(
-      blobs.map(({ key }) => store.get(key, { type: 'json' }).catch(() => null))
-    );
-    const users = rows.filter(Boolean);
-    const user = users.find(u => u.email?.toLowerCase() === email.trim().toLowerCase());
+    if (error || !data) return respond({ message: 'This email is not registered.' }, 401);
+    if (data.role !== 'admin') return respond({ message: 'Access denied. Admin accounts only.' }, 403);
 
-    if (!user) {
-      return json({ message: 'This email is not registered.' }, 401);
-    }
-
-    if (user.role !== 'admin') {
-      return json({ message: 'Access denied. Admin accounts only.' }, 403);
-    }
-
-    return json({ id: user.id, name: user.name, email: user.email, role: user.role });
+    return respond({ id: data.id, name: data.name, email: data.email, role: data.role });
 
   } catch (err) {
-    console.error('[login]', err);
-    return json({ message: err.message || 'Internal server error' }, 500);
+    console.error('[login]', err.message);
+    return respond({ message: err.message || 'Internal server error' }, 500);
   }
 };

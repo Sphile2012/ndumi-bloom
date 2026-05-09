@@ -1,6 +1,4 @@
-import { getStore } from '@netlify/blobs';
-
-const STORE = 'announcements';
+import { createClient } from '@supabase/supabase-js';
 
 function uid() {
   return `ann_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -33,61 +31,71 @@ function isAdmin(event) {
   return token === expected;
 }
 
-export const handler = async (event, context) => {
+function getSupabase() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error('Supabase env vars not set');
+  return createClient(url, key);
+}
+
+export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return respond({});
 
   const method = event.httpMethod;
   const id = getId(event);
 
   try {
-    const store = getStore(STORE);
+    const supabase = getSupabase();
 
     if (method === 'GET' && !id) {
-      const { blobs } = await store.list();
-      const items = await Promise.all(
-        blobs.map(({ key }) => store.get(key, { type: 'json' }).catch(() => null))
-      );
-      const list = items
-        .filter(Boolean)
-        .sort((a, b) => (b.created_date || '') > (a.created_date || '') ? 1 : -1);
-      return respond(list);
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .order('created_date', { ascending: false });
+      if (error) throw error;
+      return respond(data || []);
     }
 
     if (method === 'POST' && !id) {
       if (!isAdmin(event)) return respond({ message: 'Unauthorized' }, 401);
-      const data = JSON.parse(event.body || '{}');
-      if (!data.message?.trim()) return respond({ message: 'message is required' }, 400);
+      const body = JSON.parse(event.body || '{}');
+      if (!body.message?.trim()) return respond({ message: 'message is required' }, 400);
       const ann = {
         id: uid(),
-        message: data.message.trim(),
-        type: data.type || 'info',
+        message: body.message.trim(),
+        type: body.type || 'info',
         created_date: new Date().toISOString(),
         updated_date: new Date().toISOString(),
       };
-      await store.setJSON(ann.id, ann);
-      return respond(ann, 201);
+      const { data, error } = await supabase.from('announcements').insert(ann).select().single();
+      if (error) throw error;
+      return respond(data, 201);
     }
 
     if (method === 'PATCH' && id) {
       if (!isAdmin(event)) return respond({ message: 'Unauthorized' }, 401);
-      const existing = await store.get(id, { type: 'json' });
-      if (!existing) return respond({ message: 'Not found' }, 404);
       const updates = JSON.parse(event.body || '{}');
-      const updated = { ...existing, ...updates, id, updated_date: new Date().toISOString() };
-      await store.setJSON(id, updated);
-      return respond(updated);
+      const { data, error } = await supabase
+        .from('announcements')
+        .update({ ...updates, updated_date: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return respond(data);
     }
 
     if (method === 'DELETE' && id) {
       if (!isAdmin(event)) return respond({ message: 'Unauthorized' }, 401);
-      await store.delete(id);
+      const { error } = await supabase.from('announcements').delete().eq('id', id);
+      if (error) throw error;
       return respond({ success: true });
     }
 
     return respond({ message: 'Method not allowed' }, 405);
 
   } catch (err) {
-    console.error('[announcements]', err.message, err.stack);
+    console.error('[announcements]', err.message);
     return respond({ message: err.message || 'Internal server error' }, 500);
   }
 };

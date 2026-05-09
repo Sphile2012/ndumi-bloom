@@ -1,6 +1,4 @@
-import { getStore } from '@netlify/blobs';
-
-const STORE = 'bookings';
+import { createClient } from '@supabase/supabase-js';
 
 function uid() {
   return `bk_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -33,36 +31,29 @@ function isAdmin(event) {
   return token === expected;
 }
 
-export const handler = async (event, context) => {
+function getSupabase() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error('Supabase env vars not set');
+  return createClient(url, key);
+}
+
+export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return respond({});
 
   const method = event.httpMethod;
   const id = getId(event);
 
   try {
-    const store = getStore(STORE);
+    const supabase = getSupabase();
 
     if (method === 'GET' && !id) {
-      const { blobs } = await store.list();
-      const rows = await Promise.all(
-        blobs.map(({ key }) => store.get(key, { type: 'json' }).catch(() => null))
-      );
-      let list = rows.filter(Boolean);
-
       const qs = event.queryStringParameters || {};
-      if (Object.keys(qs).length) {
-        list = list.filter(b =>
-          Object.entries(qs).every(([k, v]) => String(b[k]) === String(v))
-        );
-      }
-
-      list.sort((a, b) => {
-        if (b.preferred_date !== a.preferred_date)
-          return b.preferred_date > a.preferred_date ? 1 : -1;
-        return (b.created_date || '') > (a.created_date || '') ? 1 : -1;
-      });
-
-      return respond(list);
+      let query = supabase.from('bookings').select('*').order('preferred_date', { ascending: false });
+      Object.entries(qs).forEach(([k, v]) => { query = query.eq(k, v); });
+      const { data, error } = await query;
+      if (error) throw error;
+      return respond(data || []);
     }
 
     if (method === 'POST' && !id) {
@@ -77,30 +68,35 @@ export const handler = async (event, context) => {
         created_date: new Date().toISOString(),
         updated_date: new Date().toISOString(),
       };
-      await store.setJSON(booking.id, booking);
-      return respond(booking, 201);
+      const { data: created, error } = await supabase.from('bookings').insert(booking).select().single();
+      if (error) throw error;
+      return respond(created, 201);
     }
 
     if (method === 'PATCH' && id) {
       if (!isAdmin(event)) return respond({ message: 'Unauthorized' }, 401);
-      const existing = await store.get(id, { type: 'json' });
-      if (!existing) return respond({ message: 'Not found' }, 404);
       const updates = JSON.parse(event.body || '{}');
-      const updated = { ...existing, ...updates, id, updated_date: new Date().toISOString() };
-      await store.setJSON(id, updated);
+      const { data: updated, error } = await supabase
+        .from('bookings')
+        .update({ ...updates, updated_date: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
       return respond(updated);
     }
 
     if (method === 'DELETE' && id) {
       if (!isAdmin(event)) return respond({ message: 'Unauthorized' }, 401);
-      await store.delete(id);
+      const { error } = await supabase.from('bookings').delete().eq('id', id);
+      if (error) throw error;
       return respond({ success: true });
     }
 
     return respond({ message: 'Method not allowed' }, 405);
 
   } catch (err) {
-    console.error('[bookings]', err.message, err.stack);
+    console.error('[bookings]', err.message);
     return respond({ message: err.message || 'Internal server error' }, 500);
   }
 };
