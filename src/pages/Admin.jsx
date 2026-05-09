@@ -897,7 +897,7 @@ function Dashboard() {
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
               <p className="font-semibold mb-1">💡 How to get your old bookings</p>
               <ol className="list-decimal list-inside space-y-1 text-xs">
-                <li>Go to your old base44 admin dashboard</li>
+                <li>Go to your old admin dashboard</li>
                 <li>Export or copy all bookings as JSON</li>
                 <li>Paste the JSON array above and click Import</li>
                 <li>Once imported successfully, you can delete this tab</li>
