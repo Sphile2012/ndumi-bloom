@@ -40,7 +40,7 @@ export const handler = async (event) => {
   const id = getId(event);
 
   try {
-    const store = getStore({ name: STORE, consistency: 'strong' });
+    const store = getStore(STORE);
 
     if (method === 'GET' && !id) {
       const { blobs } = await store.list();
