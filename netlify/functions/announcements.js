@@ -29,11 +29,11 @@ function isAdmin(event) {
   const h = event.headers || {};
   const token = h['x-admin-token'] || h['X-Admin-Token'] || '';
   const expected = process.env.ADMIN_TOKEN || '';
-  if (!process.env.ADMIN_TOKEN) return token.length > 0;
+  if (!expected) return token.length > 0;
   return token === expected;
 }
 
-export const handler = async (event) => {
+export const handler = async (event, context) => {
   if (event.httpMethod === 'OPTIONS') return respond({});
 
   const method = event.httpMethod;
@@ -87,7 +87,7 @@ export const handler = async (event) => {
     return respond({ message: 'Method not allowed' }, 405);
 
   } catch (err) {
-    console.error('[announcements]', err.message);
+    console.error('[announcements]', err.message, err.stack);
     return respond({ message: err.message || 'Internal server error' }, 500);
   }
 };
