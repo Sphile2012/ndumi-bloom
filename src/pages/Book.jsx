@@ -8,7 +8,7 @@ import { Loader2, ChevronRight, ChevronLeft, CheckCircle2, User, Clock, Clipboar
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { ndumie } from "@/api/ndumieClient";
-import { timeSlots } from "../lib/serviceData";
+import { timeSlots, saturdayTimeSlots } from "../lib/serviceData";
 
 export default function Book() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -259,9 +259,17 @@ export default function Book() {
                   <div>
                     <Label className="text-sm font-medium mb-3 block">Date *</Label>
                     <div className="flex justify-center">
-                      <Calendar mode="single" selected={date} onSelect={handleDateSelect} disabled={(d) => d < new Date()} />
+                      <Calendar mode="single" selected={date} onSelect={handleDateSelect}
+                        disabled={(d) => {
+                          const day = d.getDay();
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          return d < today || day === 0; // disable past dates and Sundays
+                        }}
+                      />
                     </div>
                     {date && <p className="text-center text-sm font-medium text-primary mt-2">📅 {format(date, "EEEE, d MMMM yyyy")}</p>}
+                    <p className="text-center text-xs text-muted-foreground mt-2">🚫 Closed on Sundays &nbsp;·&nbsp; Saturday last slot 14:00</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium mb-3 block">Time *</Label>
@@ -273,16 +281,21 @@ export default function Book() {
                       </div>
                     ) : (
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        {timeSlots.map((t) => {
+                        {(date && date.getDay() === 6 ? saturdayTimeSlots : timeSlots).map((t) => {
                           const isBooked = bookedSlots.includes(t);
                           return (
                             <button key={t} type="button" onClick={() => !isBooked && setForm({ ...form, preferred_time: t })}
                               disabled={isBooked}
                               className={`py-2.5 px-3 rounded-xl border-2 text-sm font-medium transition-all ${
-                                isBooked ? "border-border bg-muted text-muted-foreground line-through cursor-not-allowed opacity-50"
-                                  : form.preferred_time === t ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                                isBooked
+                                  ? "border-border bg-muted text-muted-foreground line-through cursor-not-allowed opacity-40"
+                                  : form.preferred_time === t
+                                  ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20"
                                   : "border-border hover:border-primary/40 text-muted-foreground hover:text-foreground"
-                              }`}>{t}</button>
+                              }`}>
+                              {t}
+                              {isBooked && <span className="block text-xs mt-0.5 not-italic opacity-70">Booked</span>}
+                            </button>
                           );
                         })}
                       </div>

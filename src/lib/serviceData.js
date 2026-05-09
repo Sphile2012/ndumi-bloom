@@ -54,3 +54,8 @@ export const allServices = {
 export const timeSlots = [
   "08:00", "10:00", "12:00", "14:00", "16:00",
 ];
+
+// Saturday has no 16:00 slot
+export const saturdayTimeSlots = [
+  "08:00", "10:00", "12:00", "14:00",
+];
