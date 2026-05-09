@@ -47,7 +47,7 @@ function json(body, status = 200) {
 function adminOk(event) {
   const h = event.headers || {};
   const token = h['x-admin-token'] || h['X-Admin-Token'] || '';
-  const expected = process.env.ADMIN_TOKEN || 'bloom2024';
+  const expected = process.env.ADMIN_TOKEN || '';
   // Accept token if it matches, OR if no ADMIN_TOKEN env var is set (open during setup)
   if (!process.env.ADMIN_TOKEN) return token.length > 0;
   return token === expected;

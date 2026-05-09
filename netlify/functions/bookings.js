@@ -1,11 +1,3 @@
-/**
- * Netlify Function: bookings
- * GET    /.netlify/functions/bookings          - list / filter bookings
- * POST   /.netlify/functions/bookings          - create booking (public)
- * PATCH  /.netlify/functions/bookings/:id      - update booking  (admin)
- * DELETE /.netlify/functions/bookings/:id      - delete booking  (admin)
- */
-
 import { getStore } from '@netlify/blobs';
 
 const STORE = 'bookings';
@@ -14,7 +6,7 @@ function uid() {
   return `bk_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-function res(body, status = 200) {
+function respond(body, status = 200) {
   return {
     statusCode: status,
     headers: {
@@ -29,34 +21,27 @@ function res(body, status = 200) {
 
 function getId(event) {
   const path = event.rawPath || event.path || '';
-  const match = path.match(/\/bookings\/([^/?]+)/);
+  const match = path.match(/\/bookings\/([^/?#]+)/);
   return match ? match[1] : null;
 }
 
-function adminOk(event) {
+function isAdmin(event) {
   const h = event.headers || {};
   const token = h['x-admin-token'] || h['X-Admin-Token'] || '';
-  const expected = process.env.ADMIN_TOKEN || 'bloom2024';
+  const expected = process.env.ADMIN_TOKEN || '';
   if (!process.env.ADMIN_TOKEN) return token.length > 0;
   return token === expected;
 }
 
 export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return res({});
+  if (event.httpMethod === 'OPTIONS') return respond({});
 
   const method = event.httpMethod;
-  const id     = getId(event);
+  const id = getId(event);
 
-  let store;
   try {
-    store = getStore(STORE);
-  } catch (err) {
-    console.error('[bookings] Failed to get store:', err);
-    return res({ message: 'Storage unavailable. Please try again.' }, 503);
-  }
-  try {
+    const store = getStore({ name: STORE, consistency: 'strong' });
 
-    /* ── GET /bookings ─────────────────────────────────────────────── */
     if (method === 'GET' && !id) {
       const { blobs } = await store.list();
       const rows = await Promise.all(
@@ -77,22 +62,14 @@ export const handler = async (event) => {
         return (b.created_date || '') > (a.created_date || '') ? 1 : -1;
       });
 
-      return res(list);
+      return respond(list);
     }
 
-    /* ── POST /bookings ────────────────────────────────────────────── */
     if (method === 'POST' && !id) {
-      let data;
-      try {
-        data = JSON.parse(event.body || '{}');
-      } catch {
-        return res({ message: 'Invalid request body' }, 400);
-      }
-
+      const data = JSON.parse(event.body || '{}');
       if (!data.client_name?.trim() || !data.client_phone?.trim()) {
-        return res({ message: 'client_name and client_phone are required' }, 400);
+        return respond({ message: 'client_name and client_phone are required' }, 400);
       }
-
       const booking = {
         ...data,
         id: uid(),
@@ -100,39 +77,30 @@ export const handler = async (event) => {
         created_date: new Date().toISOString(),
         updated_date: new Date().toISOString(),
       };
-
       await store.setJSON(booking.id, booking);
-      console.log('[bookings] Created:', booking.id);
-      return res(booking, 201);
+      return respond(booking, 201);
     }
 
-    /* ── PATCH /bookings/:id ───────────────────────────────────────── */
     if (method === 'PATCH' && id) {
-      if (!adminOk(event)) return res({ message: 'Unauthorized' }, 401);
+      if (!isAdmin(event)) return respond({ message: 'Unauthorized' }, 401);
       const existing = await store.get(id, { type: 'json' });
-      if (!existing) return res({ message: 'Booking not found' }, 404);
+      if (!existing) return respond({ message: 'Not found' }, 404);
       const updates = JSON.parse(event.body || '{}');
-      const updated = {
-        ...existing,
-        ...updates,
-        id,
-        updated_date: new Date().toISOString(),
-      };
+      const updated = { ...existing, ...updates, id, updated_date: new Date().toISOString() };
       await store.setJSON(id, updated);
-      return res(updated);
+      return respond(updated);
     }
 
-    /* ── DELETE /bookings/:id ──────────────────────────────────────── */
     if (method === 'DELETE' && id) {
-      if (!adminOk(event)) return res({ message: 'Unauthorized' }, 401);
+      if (!isAdmin(event)) return respond({ message: 'Unauthorized' }, 401);
       await store.delete(id);
-      return res({ success: true });
+      return respond({ success: true });
     }
 
-    return res({ message: 'Method not allowed' }, 405);
+    return respond({ message: 'Method not allowed' }, 405);
 
   } catch (err) {
-    console.error('[bookings] Error:', err.message, err.stack);
-    return res({ message: err.message || 'Internal server error' }, 500);
+    console.error('[bookings]', err.message);
+    return respond({ message: err.message || 'Internal server error' }, 500);
   }
 };

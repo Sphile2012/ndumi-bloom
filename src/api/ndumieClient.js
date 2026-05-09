@@ -12,9 +12,9 @@ function getAdminToken() {
   try {
     const s = JSON.parse(localStorage.getItem('bloom_admin_session'));
     // Use stored token, or fall back to env var, or default
-    return s?.token || import.meta.env.VITE_ADMIN_PASSWORD || 'bloom2024';
+    return s?.token || import.meta.env.VITE_ADMIN_PASSWORD || '';
   } catch {
-    return import.meta.env.VITE_ADMIN_PASSWORD || 'bloom2024';
+    return import.meta.env.VITE_ADMIN_PASSWORD || '';
   }
 }
 

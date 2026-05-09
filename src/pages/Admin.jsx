@@ -56,7 +56,7 @@ function LoginScreen() {
         role:  user.role,
         email: user.email,
         name:  user.name || "",
-        token: import.meta.env.VITE_ADMIN_PASSWORD || "bloom2024",
+        token: import.meta.env.VITE_ADMIN_PASSWORD || "",
       }));
       window.location.reload();
     } catch (err) {

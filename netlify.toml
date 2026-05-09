@@ -5,7 +5,6 @@
 
 [functions]
   node_bundler = "esbuild"
-  external_node_modules = ["@netlify/blobs"]
 
 [dev]
   command = "npm run dev"
@@ -13,12 +12,6 @@
   targetPort = 5173
   framework = "#custom"
   autoLaunch = false
-
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-  force = true
 
 [[redirects]]
   from = "/*"

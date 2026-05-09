@@ -32,7 +32,7 @@ function adminOk(event) {
   const expected =
     process.env.ADMIN_TOKEN ||
     process.env.VITE_ADMIN_PASSWORD ||
-    'bloom2024';
+    '';
   return token === expected;
 }
 
