@@ -40,10 +40,14 @@ function getSupabase() {
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return respond({});
-  if (!isAdmin(event)) return respond({ message: 'Unauthorized' }, 401);
 
   const method = event.httpMethod;
   const id = getId(event);
+
+  // Only require admin for write operations
+  if (['POST', 'PATCH', 'DELETE'].includes(method) && !isAdmin(event)) {
+    return respond({ message: 'Unauthorized' }, 401);
+  }
 
   try {
     const supabase = getSupabase();
