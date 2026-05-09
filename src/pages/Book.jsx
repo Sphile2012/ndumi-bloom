@@ -52,6 +52,7 @@ export default function Book() {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [error, setError] = useState("");
   const [slotsCache, setSlotsCache] = useState({});
+  const [bookingCreated, setBookingCreated] = useState(null);
 
   const fetchBookedSlots = async (selectedDate) => {
     if (!selectedDate) return;
@@ -115,9 +116,11 @@ export default function Book() {
           : form.notes,
         status: "pending",
       };
-      await ndumie.entities.Booking.create(bookingData);
-      navigate("/booking-confirmed", { state: { booking: bookingData } });
+      const created = await ndumie.entities.Booking.create(bookingData);
+      // Navigate with the created booking data (use created if available, fallback to bookingData)
+      navigate("/booking-confirmed", { state: { booking: created || bookingData } });
     } catch (err) {
+      console.error("Booking error:", err);
       setError("Could not save your booking. Please check your connection and try again.");
       setLoading(false);
     }
@@ -390,12 +393,62 @@ export default function Book() {
               </Button>
             ) : <div />}
             {!isLastStep ? (
-              <Button onClick={() => { setStep(step + 1); setError(""); }} disabled={!canProceed()}
+              <Button onClick={async () => {
+                // Save booking when moving from Confirm (step 3) to Payment (step 4)
+                if (step === 3 && !isCourseBooking) {
+                  setLoading(true);
+                  setError("");
+                  try {
+                    const bookingData = {
+                      ...form,
+                      preferred_date: format(date, "yyyy-MM-dd"),
+                      preferred_time: form.preferred_time,
+                      status: "pending",
+                    };
+                    const created = await ndumie.entities.Booking.create(bookingData);
+                    setBookingCreated(created || bookingData);
+                    setStep(step + 1);
+                    setError("");
+                  } catch (err) {
+                    console.error("Booking error:", err);
+                    setError("Could not save your booking. Please check your connection and try again.");
+                  } finally {
+                    setLoading(false);
+                  }
+                } else if (step === 3 && isCourseBooking) {
+                  setLoading(true);
+                  setError("");
+                  try {
+                    const bookingData = {
+                      ...form,
+                      preferred_date: format(dateRange.from, "yyyy-MM-dd"),
+                      preferred_time: "All Day",
+                      notes: dateRange.to ? `Course end date: ${format(dateRange.to, "yyyy-MM-dd")}` : form.notes,
+                      status: "pending",
+                    };
+                    const created = await ndumie.entities.Booking.create(bookingData);
+                    setBookingCreated(created || bookingData);
+                    setStep(step + 1);
+                    setError("");
+                  } catch (err) {
+                    console.error("Booking error:", err);
+                    setError("Could not save your booking. Please check your connection and try again.");
+                  } finally {
+                    setLoading(false);
+                  }
+                } else {
+                  setStep(step + 1);
+                  setError("");
+                }
+              }} disabled={!canProceed() || loading}
                 className="rounded-xl px-6 bg-primary hover:bg-primary/90 text-primary-foreground ml-auto disabled:opacity-50 disabled:cursor-not-allowed">
                 Continue <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit} disabled={loading} size="lg"
+              <Button onClick={() => {
+                // Booking already saved on step 3 — just navigate to confirmed
+                navigate("/booking-confirmed", { state: { booking: bookingCreated } });
+              }} disabled={loading} size="lg"
                 className="rounded-xl px-8 bg-primary hover:bg-primary/90 text-primary-foreground ml-auto shadow-lg shadow-primary/20">
                 {loading
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {isCourseBooking ? "Enrolling..." : "Booking..."}</>
