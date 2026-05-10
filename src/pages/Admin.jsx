@@ -68,7 +68,7 @@ function LoginScreen() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="bg-card border border-border/50 rounded-3xl p-10 max-w-sm w-full shadow-xl">
+      <div className="bg-card border border-border/50 rounded-3xl p-6 sm:p-10 max-w-sm w-full shadow-xl">
         <div className="text-center mb-8">
           <p className="text-5xl mb-4">💅</p>
           <h2 className="font-heading text-2xl font-bold text-foreground mb-1">Admin Login</h2>
@@ -691,8 +691,8 @@ function Dashboard() {
               </div>
             ) : (
               <div className="bg-card border border-border/50 rounded-2xl overflow-hidden">
-                {/* Table header */}
-                <div className="grid grid-cols-12 gap-2 px-5 py-3 bg-secondary/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {/* Table header - hidden on mobile */}
+                <div className="hidden sm:grid grid-cols-12 gap-2 px-5 py-3 bg-secondary/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   <div className="col-span-4">Name</div>
                   <div className="col-span-2">Role</div>
                   <div className="col-span-4">Email</div>
@@ -707,35 +707,35 @@ function Dashboard() {
                   })
                   .map((u, i) => (
                     <div key={u.id}
-                      className={`grid grid-cols-12 gap-2 px-5 py-4 items-center text-sm border-b border-border/40 last:border-0 ${i % 2 === 0 ? "" : "bg-secondary/20"}`}>
-                      <div className="col-span-4">
-                        <p className="font-medium text-foreground truncate">{u.name || "—"}</p>
-                        {u.role === "admin" && <p className="text-xs text-primary font-medium">Owner</p>}
+                      className={`px-4 sm:px-5 py-4 border-b border-border/40 last:border-0 ${i % 2 === 0 ? "" : "bg-secondary/20"}`}>
+                      {/* Mobile layout */}
+                      <div className="flex items-start justify-between gap-3 sm:hidden">
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground text-sm truncate">{u.name || "—"}</p>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">{u.email}</p>
+                          <span className={`inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${u.role === "admin" ? "bg-primary/10 text-primary border-primary/20" : "bg-secondary text-muted-foreground border-border"}`}>{u.role}</span>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <Button size="sm" variant="outline" className="rounded-lg h-7 px-2 text-xs" onClick={() => toggleRole(u)}>{u.role === "admin" ? "→ User" : "→ Admin"}</Button>
+                          <Button size="sm" variant="ghost" className="rounded-lg h-7 px-2 text-red-500 hover:bg-red-50" onClick={() => deleteUser(u.id)}>🗑️</Button>
+                        </div>
                       </div>
-                      <div className="col-span-2">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                          u.role === "admin"
-                            ? "bg-primary/10 text-primary border-primary/20"
-                            : "bg-secondary text-muted-foreground border-border"
-                        }`}>
-                          {u.role}
-                        </span>
-                      </div>
-                      <div className="col-span-4">
-                        <p className="text-muted-foreground text-xs truncate">{u.email}</p>
-                      </div>
-                      <div className="col-span-2 flex justify-end gap-1">
-                        <Button size="sm" variant="outline"
-                          className="rounded-lg h-7 px-2 text-xs"
-                          onClick={() => toggleRole(u)}
-                          title={u.role === "admin" ? "Demote to user" : "Promote to admin"}>
-                          {u.role === "admin" ? "→ User" : "→ Admin"}
-                        </Button>
-                        <Button size="sm" variant="ghost"
-                          className="rounded-lg h-7 px-2 text-red-500 hover:bg-red-50"
-                          onClick={() => deleteUser(u.id)}>
-                          🗑️
-                        </Button>
+                      {/* Desktop layout */}
+                      <div className="hidden sm:grid grid-cols-12 gap-2 items-center text-sm">
+                        <div className="col-span-4">
+                          <p className="font-medium text-foreground truncate">{u.name || "—"}</p>
+                          {u.role === "admin" && <p className="text-xs text-primary font-medium">Owner</p>}
+                        </div>
+                        <div className="col-span-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${u.role === "admin" ? "bg-primary/10 text-primary border-primary/20" : "bg-secondary text-muted-foreground border-border"}`}>{u.role}</span>
+                        </div>
+                        <div className="col-span-4">
+                          <p className="text-muted-foreground text-xs truncate">{u.email}</p>
+                        </div>
+                        <div className="col-span-2 flex justify-end gap-1">
+                          <Button size="sm" variant="outline" className="rounded-lg h-7 px-2 text-xs" onClick={() => toggleRole(u)} title={u.role === "admin" ? "Demote to user" : "Promote to admin"}>{u.role === "admin" ? "→ User" : "→ Admin"}</Button>
+                          <Button size="sm" variant="ghost" className="rounded-lg h-7 px-2 text-red-500 hover:bg-red-50" onClick={() => deleteUser(u.id)}>🗑️</Button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -911,8 +911,7 @@ function Dashboard() {
           <>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
               {[
-                { label: "Pending", count: counts.pending, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200" },
-                { label: "Confirmed", count: counts.confirmed, color: "text-blue-600", bg: "bg-blue-50 border-blue-200" },
+                { label: "Pending", count: counts.pending, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200" },                { label: "Confirmed", count: counts.confirmed, color: "text-blue-600", bg: "bg-blue-50 border-blue-200" },
                 { label: "Completed", count: counts.completed, color: "text-green-600", bg: "bg-green-50 border-green-200" },
                 { label: "Cancelled", count: counts.cancelled, color: "text-red-600", bg: "bg-red-50 border-red-200" },
               ].map((stat) => (

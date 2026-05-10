@@ -54,7 +54,7 @@ export default function BookingConfirmed() {
         <div className="bg-white rounded-3xl shadow-xl border border-pink-100 overflow-hidden">
 
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#c06070] to-[#e8a0a8] px-8 py-10 text-center">
+          <div className="bg-gradient-to-r from-[#c06070] to-[#e8a0a8] px-5 sm:px-8 py-8 sm:py-10 text-center">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -71,7 +71,7 @@ export default function BookingConfirmed() {
             </p>
           </div>
 
-          <div className="px-7 py-7 space-y-5">
+          <div className="px-5 sm:px-7 py-5 sm:py-7 space-y-5">
 
             {/* Status */}
             <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
@@ -154,7 +154,7 @@ export default function BookingConfirmed() {
               </Button>
 
               {/* Individual options */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
                   <Button variant="outline" className="w-full rounded-xl gap-1.5 border-green-300 text-green-700 hover:bg-green-50">
                     <MessageCircle className="w-4 h-4" /> WhatsApp

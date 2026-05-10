@@ -284,7 +284,7 @@ export default function Book() {
                         <Loader2 className="w-4 h-4 animate-spin" /> Checking availability...
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                         {(date && date.getDay() === 6 ? saturdayTimeSlots : timeSlots).map((t) => {
                           const isBooked = bookedSlots.includes(t);
                           return (
@@ -387,7 +387,7 @@ export default function Book() {
           </AnimatePresence>
 
           {/* Navigation */}
-          <div className="px-6 sm:px-10 pb-8 flex items-center justify-between gap-4">
+          <div className="px-4 sm:px-6 md:px-8 pb-6 sm:pb-8 flex items-center justify-between gap-4">
             {step > 1 ? (
               <Button variant="outline" onClick={() => { setStep(step - 1); setError(""); }} className="rounded-xl px-5">
                 <ChevronLeft className="w-4 h-4 mr-1" /> Back

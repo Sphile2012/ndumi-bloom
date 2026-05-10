@@ -49,7 +49,7 @@ export default function HeroSection({ heroImage }) {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="font-heading leading-none mb-6"
           >
-            <span className="block text-6xl sm:text-7xl lg:text-8xl font-black text-white tracking-tight drop-shadow-sm">
+            <span className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black text-white tracking-tight drop-shadow-sm">
               Bloom
             </span>
             <span
@@ -58,7 +58,7 @@ export default function HeroSection({ heroImage }) {
             >
               Skills &amp; Beauty
             </span>
-            <span className="block text-white/80 font-heading italic font-light text-2xl sm:text-3xl mt-4">
+            <span className="block text-white/80 font-heading italic font-light text-xl sm:text-2xl md:text-3xl mt-4">
               Where nails meet artistry.
             </span>
           </motion.h1>

@@ -80,7 +80,7 @@ export default function Login() {
         transition={{ duration: 0.4 }}
         className="w-full max-w-sm"
       >
-        <div className="bg-card border border-border/50 rounded-3xl p-10 shadow-xl shadow-primary/5">
+        <div className="bg-card border border-border/50 rounded-3xl p-6 sm:p-10 shadow-xl shadow-primary/5">
 
           {/* Header */}
           <div className="text-center mb-8">

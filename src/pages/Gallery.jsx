@@ -47,7 +47,7 @@ export default function Gallery() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mt-16 p-10 rounded-3xl"
+          className="text-center mt-16 p-6 sm:p-10 rounded-3xl"
           style={{ background: "linear-gradient(135deg, #fdf6f7, #fef9f0)", border: "1px solid rgba(192,96,112,0.12)" }}
         >
           <span className="text-4xl block mb-4">💅🪭🌸</span>

@@ -126,7 +126,7 @@ export default function Services() {
           className="mt-16 rounded-3xl overflow-hidden"
           style={{ background: "linear-gradient(135deg, #fdf6f7, #fef9f0)" }}
         >
-          <div className="p-8 sm:p-12 text-center border border-primary/10 rounded-3xl">
+          <div className="p-6 sm:p-8 md:p-12 text-center border border-primary/10 rounded-3xl">
             <span className="text-4xl mb-4 block">💳</span>
             <h3 className="font-heading text-2xl font-bold text-foreground mb-2">Payment Details</h3>
             <p className="text-muted-foreground text-sm mb-6">Direct Deposit — Immediate Payment Required</p>
@@ -143,7 +143,7 @@ export default function Services() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-12 bg-rose-50 border border-rose-200 rounded-3xl p-8 sm:p-10"
+          className="mt-12 bg-rose-50 border border-rose-200 rounded-3xl p-6 sm:p-8 md:p-10"
         >
           <div className="text-center mb-6">
             <span className="text-3xl">⏰</span>

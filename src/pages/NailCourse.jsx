@@ -45,7 +45,7 @@ export default function NailCourse() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
 
         {/* Course Details Message */}
-        <div className="rounded-3xl border border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 p-10 sm:p-14 mb-12 text-center">
+        <div className="rounded-3xl border border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 p-6 sm:p-10 md:p-14 mb-12 text-center">
           <span className="text-5xl block mb-6">🎓💅</span>
           <h2 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mb-4">Transform Your Passion Into a Career</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-base leading-relaxed mb-6">

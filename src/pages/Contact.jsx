@@ -77,7 +77,7 @@ export default function Contact() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="bg-green-50 border border-green-100 rounded-3xl p-8 sm:p-12 text-center"
+          className="bg-green-50 border border-green-100 rounded-3xl p-6 sm:p-8 md:p-12 text-center"
         >
           <MessageCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
           <h3 className="font-heading text-2xl font-bold text-foreground mb-3">
