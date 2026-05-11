@@ -5,6 +5,7 @@
 
 [functions]
   node_bundler = "esbuild"
+  external_node_modules = ["@supabase/supabase-js"]
 
 [dev]
   command = "npm run dev"
@@ -13,23 +14,6 @@
   framework = "#custom"
   autoLaunch = false
 
-# Rewrite sub-path function calls to query params (Netlify Functions don't support sub-paths)
-[[redirects]]
-  from = "/.netlify/functions/bookings/:id"
-  to = "/.netlify/functions/bookings?id=:id"
-  status = 200
-
-[[redirects]]
-  from = "/.netlify/functions/announcements/:id"
-  to = "/.netlify/functions/announcements?id=:id"
-  status = 200
-
-[[redirects]]
-  from = "/.netlify/functions/users/:id"
-  to = "/.netlify/functions/users?id=:id"
-  status = 200
-
-# SPA fallback — must come AFTER function routes
 [[redirects]]
   from = "/*"
   to = "/index.html"
