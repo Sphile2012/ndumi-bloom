@@ -1,18 +1,25 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
-import { Loader2, ChevronRight, ChevronLeft, CheckCircle2, User, Clock, ClipboardCheck, CalendarDays, CreditCard } from "lucide-react";
+import { Loader2, ChevronRight, ChevronLeft, CheckCircle2, User, Clock, ClipboardCheck, CalendarDays, CreditCard, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { ndumie } from "@/api/ndumieClient";
-import { timeSlots, saturdayTimeSlots } from "../lib/serviceData";
+import { allServices, timeSlots, saturdayTimeSlots } from "../lib/serviceData";
+
+// Service categories available for regular bookings (exclude course)
+const BOOKABLE_CATEGORIES = Object.keys(allServices).filter(k => k !== "Beginner Nail Course");
 
 export default function Book() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const isCourseBooking = urlParams.get("service") === "course";
+  const [searchParams] = useSearchParams();
+  const isCourseBooking = searchParams.get("service") === "course";
+
+  // Pre-fill from URL params (linked from Services page)
+  const prefilledCategory = searchParams.get("category") || "";
+  const prefilledVariant = searchParams.get("variant") || "";
 
   const STEPS = isCourseBooking
     ? [
@@ -23,20 +30,32 @@ export default function Book() {
       ]
     : [
         { id: 1, label: "Your Details", icon: User },
-        { id: 2, label: "Date & Time", icon: Clock },
-        { id: 3, label: "Confirm", icon: ClipboardCheck },
-        { id: 4, label: "Payment", icon: CreditCard },
+        { id: 2, label: "Service", icon: Sparkles },
+        { id: 3, label: "Date & Time", icon: Clock },
+        { id: 4, label: "Confirm", icon: ClipboardCheck },
+        { id: 5, label: "Payment", icon: CreditCard },
       ];
 
   const LAST_STEP = STEPS[STEPS.length - 1].id;
+
+  // Resolve prefilled price
+  const prefilledPrice = useMemo(() => {
+    if (isCourseBooking) return 3500;
+    if (prefilledCategory && prefilledVariant) {
+      const variants = allServices[prefilledCategory] || [];
+      const match = variants.find(v => v.name === prefilledVariant);
+      return match?.price || 0;
+    }
+    return 0;
+  }, [isCourseBooking, prefilledCategory, prefilledVariant]);
 
   const initialForm = {
     client_name: "",
     client_phone: "",
     client_email: "",
-    service_category: isCourseBooking ? "Beginner Nail Course" : "General",
-    service_detail: isCourseBooking ? "2-Week Beginner Course" : "Appointment",
-    price: isCourseBooking ? 3500 : 0,
+    service_category: isCourseBooking ? "Beginner Nail Course" : prefilledCategory || "",
+    service_detail: isCourseBooking ? "2-Week Beginner Course" : prefilledVariant ? `${prefilledCategory} — ${prefilledVariant}` : "",
+    price: isCourseBooking ? 3500 : prefilledPrice,
     preferred_time: "",
     notes: "",
   };
@@ -54,6 +73,34 @@ export default function Book() {
   const [slotsCache, setSlotsCache] = useState({});
   const [bookingCreated, setBookingCreated] = useState(null);
 
+  // Service selection state
+  const [selectedCategory, setSelectedCategory] = useState(prefilledCategory || "");
+  const [selectedVariant, setSelectedVariant] = useState(prefilledVariant || "");
+
+  const categoryVariants = selectedCategory ? (allServices[selectedCategory] || []) : [];
+
+  const handleCategorySelect = (cat) => {
+    setSelectedCategory(cat);
+    setSelectedVariant("");
+    // If category has only one variant, auto-select it
+    const variants = allServices[cat] || [];
+    if (variants.length === 1) {
+      handleVariantSelect(cat, variants[0]);
+    } else {
+      setForm(prev => ({ ...prev, service_category: cat, service_detail: "", price: 0 }));
+    }
+  };
+
+  const handleVariantSelect = (cat, variant) => {
+    setSelectedVariant(variant.name);
+    setForm(prev => ({
+      ...prev,
+      service_category: cat,
+      service_detail: `${cat} — ${variant.name}`,
+      price: variant.price,
+    }));
+  };
+
   const fetchBookedSlots = async (selectedDate) => {
     if (!selectedDate) return;
     const dateStr = format(selectedDate, "yyyy-MM-dd");
@@ -64,6 +111,9 @@ export default function Book() {
       const slots = bookings.filter(b => b.status !== "cancelled").map(b => b.preferred_time);
       setSlotsCache(prev => ({ ...prev, [dateStr]: slots }));
       setBookedSlots(slots);
+    } catch (err) {
+      console.error("Failed to fetch booked slots:", err);
+      setBookedSlots([]);
     } finally {
       setLoadingSlots(false);
     }
@@ -77,54 +127,23 @@ export default function Book() {
 
   const isValidPhone = (phone) => /^[0-9\s\-+()]{7,}$/.test(phone.trim());
   const step1Valid = form.client_name.trim().length >= 2 && isValidPhone(form.client_phone);
-  const step2Valid = isCourseBooking ? (dateRange.from && dateRange.to) : (date && form.preferred_time);
+  const step2ServiceValid = isCourseBooking || (selectedCategory && selectedVariant && form.service_detail);
+  const stepDateValid = isCourseBooking ? (dateRange.from && dateRange.to) : (date && form.preferred_time);
 
   const phoneError = form.client_phone && !isValidPhone(form.client_phone) ? "Please enter a valid phone number" : "";
   const nameError = form.client_name && form.client_name.trim().length < 2 ? "Please enter your full name" : "";
 
   const canProceed = () => {
     if (step === 1) return step1Valid;
-    if (step === 2) return step2Valid;
+    if (!isCourseBooking && step === 2) return step2ServiceValid;
+    // Date & Time step: step 2 for course, step 3 for regular
+    const dateStep = isCourseBooking ? 2 : 3;
+    if (step === dateStep) return stepDateValid;
     return true;
   };
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    setError("");
-    if (!form.client_name.trim() || !form.client_phone.trim()) {
-      setError("Please go back and fill in your name and phone number.");
-      setLoading(false);
-      return;
-    }
-    if (!isCourseBooking && (!date || !form.preferred_time)) {
-      setError("Please go back and select a date and time.");
-      setLoading(false);
-      return;
-    }
-    if (isCourseBooking && (!dateRange.from || !dateRange.to)) {
-      setError("Please go back and select your course start and end dates.");
-      setLoading(false);
-      return;
-    }
-    try {
-      const bookingData = {
-        ...form,
-        preferred_date: isCourseBooking ? format(dateRange.from, "yyyy-MM-dd") : format(date, "yyyy-MM-dd"),
-        preferred_time: isCourseBooking ? "All Day" : form.preferred_time,
-        notes: isCourseBooking && dateRange.to
-          ? `Course end date: ${format(dateRange.to, "yyyy-MM-dd")}`
-          : form.notes,
-        status: "pending",
-      };
-      const created = await ndumie.entities.Booking.create(bookingData);
-      // Navigate with the created booking data (use created if available, fallback to bookingData)
-      navigate("/booking-confirmed", { state: { booking: created || bookingData } });
-    } catch (err) {
-      console.error("Booking error:", err);
-      setError("Could not save your booking. Please check your connection and try again.");
-      setLoading(false);
-    }
-  };
+  // Confirm step number
+  const CONFIRM_STEP = isCourseBooking ? 3 : 4;
 
   const slideVariants = {
     enter: { x: 60, opacity: 0 },
@@ -133,6 +152,37 @@ export default function Book() {
   };
 
   const isLastStep = step === LAST_STEP;
+
+  const handleNext = async () => {
+    // Save booking when moving from Confirm to Payment
+    if (step === CONFIRM_STEP) {
+      setLoading(true);
+      setError("");
+      try {
+        const bookingData = {
+          ...form,
+          preferred_date: isCourseBooking ? format(dateRange.from, "yyyy-MM-dd") : format(date, "yyyy-MM-dd"),
+          preferred_time: isCourseBooking ? "All Day" : form.preferred_time,
+          notes: isCourseBooking && dateRange.to
+            ? `Course end date: ${format(dateRange.to, "yyyy-MM-dd")}`
+            : form.notes,
+          status: "pending",
+        };
+        const created = await ndumie.entities.Booking.create(bookingData);
+        setBookingCreated(created || bookingData);
+        setStep(step + 1);
+        setError("");
+      } catch (err) {
+        console.error("Booking error:", err);
+        setError("Could not save your booking. Please check your connection and try again.");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setStep(step + 1);
+      setError("");
+    }
+  };
 
   return (
     <div className="min-h-screen py-8 sm:py-12 md:py-20 px-4 sm:px-6">
@@ -223,6 +273,78 @@ export default function Book() {
                 </div>
               )}
 
+              {/* STEP 2 (non-course): Select Service */}
+              {!isCourseBooking && step === 2 && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="font-heading text-xl font-bold text-foreground mb-1 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-primary" /> Choose Your Service
+                    </h2>
+                    <p className="text-sm text-muted-foreground">Select the service you'd like to book.</p>
+                  </div>
+
+                  {/* Category Selection */}
+                  <div>
+                    <Label className="text-sm font-medium mb-3 block">Service Category *</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {BOOKABLE_CATEGORIES.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => handleCategorySelect(cat)}
+                          className={`py-3 px-4 rounded-xl border-2 text-sm font-medium transition-all text-left ${
+                            selectedCategory === cat
+                              ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                              : "border-border hover:border-primary/40 text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Variant Selection */}
+                  {selectedCategory && categoryVariants.length > 1 && (
+                    <div>
+                      <Label className="text-sm font-medium mb-3 block">Choose Option *</Label>
+                      <div className="space-y-2">
+                        {categoryVariants.map((variant) => (
+                          <button
+                            key={variant.name}
+                            type="button"
+                            onClick={() => handleVariantSelect(selectedCategory, variant)}
+                            className={`w-full flex items-center justify-between py-3 px-4 rounded-xl border-2 text-sm font-medium transition-all ${
+                              selectedVariant === variant.name
+                                ? "border-primary bg-primary/5 text-foreground shadow-sm"
+                                : "border-border hover:border-primary/40 text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            <span>{variant.name}</span>
+                            <span className={`font-bold ${selectedVariant === variant.name ? "text-primary" : ""}`}>
+                              R{variant.price}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Selection Summary */}
+                  {form.service_detail && (
+                    <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Selected</p>
+                        <p className="text-sm font-semibold text-foreground mt-0.5">{form.service_detail}</p>
+                      </div>
+                      {form.price > 0 && (
+                        <p className="font-heading text-2xl font-black text-primary">R{form.price}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* STEP 2 (course): Date Range */}
               {isCourseBooking && step === 2 && (
                 <div className="space-y-6">
@@ -250,8 +372,8 @@ export default function Book() {
                 </div>
               )}
 
-              {/* STEP 2 (non-course): Date & Time */}
-              {!isCourseBooking && step === 2 && (
+              {/* STEP 3 (non-course): Date & Time */}
+              {!isCourseBooking && step === 3 && (
                 <div className="space-y-6">
                   <div>
                     <h2 className="font-heading text-xl font-bold text-foreground mb-1 flex items-center gap-2">
@@ -309,7 +431,7 @@ export default function Book() {
               )}
 
               {/* CONFIRM STEP */}
-              {step === 3 && (
+              {step === CONFIRM_STEP && (
                 <div className="space-y-6">
                   <div>
                     <h2 className="font-heading text-xl font-bold text-foreground mb-1 flex items-center gap-2">
@@ -329,6 +451,7 @@ export default function Book() {
                             { label: "End Date", value: dateRange.to ? format(dateRange.to, "EEEE, d MMMM yyyy") : "—", emoji: "📅" },
                           ]
                         : [
+                            { label: "Service", value: form.service_detail, emoji: "💅" },
                             { label: "Date", value: date ? format(date, "EEEE, d MMMM yyyy") : "—", emoji: "📅" },
                             { label: "Time", value: form.preferred_time, emoji: "⏰" },
                           ]
@@ -353,7 +476,7 @@ export default function Book() {
               )}
 
               {/* PAYMENT STEP */}
-              {step === 4 && (
+              {step === LAST_STEP && (
                 <div className="space-y-6">
                   <div>
                     <h2 className="font-heading text-xl font-bold text-foreground mb-1 flex items-center gap-2">
@@ -374,7 +497,7 @@ export default function Book() {
                     <p className="font-semibold mb-1">💳 Deposit Required</p>
                     <p>Pay <strong>{isCourseBooking ? "R500" : "R100"}</strong> via FNB direct transfer, then click <strong>"I've Paid"</strong> below.</p>
                   </div>
-                  <a href={`https://wa.me/27798060310?text=${encodeURIComponent(`Hi Bloom Skills & Beauty! I've just made my ${isCourseBooking ? 'R500 registration' : 'R100'} deposit for ${form.client_name}.\nDate: ${isCourseBooking ? (dateRange.from ? format(dateRange.from, 'd MMM yyyy') : '') : (date ? format(date, 'd MMM yyyy') : '')}\n\nPlease find my proof of payment attached. Thank you!`)}`}
+                  <a href={`https://wa.me/27798060310?text=${encodeURIComponent(`Hi Bloom Skills & Beauty! I've just made my ${isCourseBooking ? 'R500 registration' : 'R100'} deposit for ${form.client_name}.\nService: ${form.service_detail}\nDate: ${isCourseBooking ? (dateRange.from ? format(dateRange.from, 'd MMM yyyy') : '') : (date ? format(date, 'd MMM yyyy') : '')}\n\nPlease find my proof of payment attached. Thank you!`)}`}
                     target="_blank" rel="noopener noreferrer" className="block">
                     <button className="w-full py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-medium text-sm transition-colors">
                       💬 Send Proof of Payment via WhatsApp
@@ -394,60 +517,12 @@ export default function Book() {
               </Button>
             ) : <div />}
             {!isLastStep ? (
-              <Button onClick={async () => {
-                // Save booking when moving from Confirm (step 3) to Payment (step 4)
-                if (step === 3 && !isCourseBooking) {
-                  setLoading(true);
-                  setError("");
-                  try {
-                    const bookingData = {
-                      ...form,
-                      preferred_date: format(date, "yyyy-MM-dd"),
-                      preferred_time: form.preferred_time,
-                      status: "pending",
-                    };
-                    const created = await ndumie.entities.Booking.create(bookingData);
-                    setBookingCreated(created || bookingData);
-                    setStep(step + 1);
-                    setError("");
-                  } catch (err) {
-                    console.error("Booking error:", err);
-                    setError("Could not save your booking. Please check your connection and try again.");
-                  } finally {
-                    setLoading(false);
-                  }
-                } else if (step === 3 && isCourseBooking) {
-                  setLoading(true);
-                  setError("");
-                  try {
-                    const bookingData = {
-                      ...form,
-                      preferred_date: format(dateRange.from, "yyyy-MM-dd"),
-                      preferred_time: "All Day",
-                      notes: dateRange.to ? `Course end date: ${format(dateRange.to, "yyyy-MM-dd")}` : form.notes,
-                      status: "pending",
-                    };
-                    const created = await ndumie.entities.Booking.create(bookingData);
-                    setBookingCreated(created || bookingData);
-                    setStep(step + 1);
-                    setError("");
-                  } catch (err) {
-                    console.error("Booking error:", err);
-                    setError("Could not save your booking. Please check your connection and try again.");
-                  } finally {
-                    setLoading(false);
-                  }
-                } else {
-                  setStep(step + 1);
-                  setError("");
-                }
-              }} disabled={!canProceed() || loading}
+              <Button onClick={handleNext} disabled={!canProceed() || loading}
                 className="rounded-xl px-6 bg-primary hover:bg-primary/90 text-primary-foreground ml-auto disabled:opacity-50 disabled:cursor-not-allowed">
-                Continue <ChevronRight className="w-4 h-4 ml-1" />
+                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : <>Continue <ChevronRight className="w-4 h-4 ml-1" /></>}
               </Button>
             ) : (
               <Button onClick={() => {
-                // Booking already saved on step 3 — just navigate to confirmed
                 navigate("/booking-confirmed", { state: { booking: bookingCreated } });
               }} disabled={loading} size="lg"
                 className="rounded-xl px-8 bg-primary hover:bg-primary/90 text-primary-foreground ml-auto shadow-lg shadow-primary/20">
@@ -467,4 +542,3 @@ export default function Book() {
     </div>
   );
 }
-

@@ -18,6 +18,10 @@ function respond(body, status = 200) {
 }
 
 function getId(event) {
+  // Check query params first (Netlify Functions don't support sub-path routing)
+  const qs = event.queryStringParameters || {};
+  if (qs.id) return qs.id;
+  // Fallback: try path-based ID extraction
   const path = event.rawPath || event.path || '';
   const match = path.match(/\/bookings\/([^/?#]+)/);
   return match ? match[1] : null;
@@ -50,7 +54,10 @@ export const handler = async (event) => {
     if (method === 'GET' && !id) {
       const qs = event.queryStringParameters || {};
       let query = supabase.from('bookings').select('*').order('preferred_date', { ascending: false });
-      Object.entries(qs).forEach(([k, v]) => { query = query.eq(k, v); });
+      // Apply filters from query params (skip 'id' as it's used for entity routing)
+      Object.entries(qs).forEach(([k, v]) => {
+        if (k !== 'id') query = query.eq(k, v);
+      });
       const { data, error } = await query;
       if (error) throw error;
       return respond(data || []);

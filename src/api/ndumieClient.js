@@ -22,11 +22,9 @@ function getAdminToken() {
 async function request(path, options = {}, retries = 2) {
   const headers = { 'Content-Type': 'application/json' };
 
-  // Attach admin token for any write operation
-  if (['POST', 'PATCH', 'DELETE'].includes(options.method)) {
-    const token = getAdminToken();
-    if (token) headers['X-Admin-Token'] = token;
-  }
+  // Attach admin token for all requests (needed for admin views and writes)
+  const token = getAdminToken();
+  if (token) headers['X-Admin-Token'] = token;
 
   Object.assign(headers, options.headers || {});
 
@@ -68,10 +66,10 @@ const Booking = {
     return request('/bookings', { method: 'POST', body: JSON.stringify(data) });
   },
   update(id, data) {
-    return request(`/bookings/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return request(`/bookings?id=${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
   },
   delete(id) {
-    return request(`/bookings/${id}`, { method: 'DELETE' });
+    return request(`/bookings?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
 };
 
@@ -84,10 +82,10 @@ const User = {
     return request('/users', { method: 'POST', body: JSON.stringify(data) });
   },
   update(id, data) {
-    return request(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return request(`/users?id=${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
   },
   delete(id) {
-    return request(`/users/${id}`, { method: 'DELETE' });
+    return request(`/users?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
   /** Seed known users from old system (one-time) */
   seed() {
@@ -104,10 +102,10 @@ const Announcement = {
     return request('/announcements', { method: 'POST', body: JSON.stringify(data) });
   },
   update(id, data) {
-    return request(`/announcements/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return request(`/announcements?id=${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
   },
   delete(id) {
-    return request(`/announcements/${id}`, { method: 'DELETE' });
+    return request(`/announcements?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
 };
 

@@ -130,6 +130,7 @@ function Dashboard() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [updating, setUpdating] = useState(null);
   const [toast, setToast] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
   const [activeTab, setActiveTab] = useState("services");
   const [announcements, setAnnouncements] = useState([]);
   const [newMsg, setNewMsg] = useState("");
@@ -156,6 +157,7 @@ function Dashboard() {
 
   const fetchBookings = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const data = await ndumie.entities.Booking.filter({});
       // Sort newest date first
@@ -166,6 +168,12 @@ function Dashboard() {
       setBookings(data);
     } catch (err) {
       console.error("Failed to fetch bookings:", err);
+      const msg = err?.message || "Failed to load bookings";
+      setFetchError(
+        msg.includes("env vars")
+          ? "⚠️ Server configuration error: Supabase environment variables are not set. Please add SUPABASE_URL and SUPABASE_ANON_KEY to your Netlify site settings → Environment Variables."
+          : `⚠️ ${msg}. Please check your Netlify function logs and ensure environment variables (SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_TOKEN) are set in Netlify → Site Settings → Environment Variables.`
+      );
     } finally {
       setLoading(false);
     }
@@ -948,11 +956,20 @@ function Dashboard() {
             </div>
 
             {/* Bookings List */}
+            {fetchError && (
+              <div className="mb-6 bg-red-50 border border-red-300 rounded-2xl p-5 text-sm text-red-800">
+                <p className="font-semibold mb-1">Failed to load bookings</p>
+                <p>{fetchError}</p>
+                <Button variant="outline" size="sm" onClick={fetchBookings} className="mt-3 rounded-xl gap-2 border-red-300 text-red-700 hover:bg-red-100">
+                  <RefreshCw className="w-3 h-3" /> Retry
+                </Button>
+              </div>
+            )}
             {loading ? (
               <div className="flex items-center justify-center py-20 gap-3 text-muted-foreground">
                 <Loader2 className="w-5 h-5 animate-spin" /> Loading bookings...
               </div>
-            ) : filtered.length === 0 ? (
+            ) : filtered.length === 0 && !fetchError ? (
               <div className="text-center py-20 text-muted-foreground">
                 <p className="text-4xl mb-3">📋</p>
                 <p className="font-medium">No bookings found</p>

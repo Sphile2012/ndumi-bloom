@@ -18,6 +18,10 @@ function respond(body, status = 200) {
 }
 
 function getId(event) {
+  // Check query params first (Netlify Functions don't support sub-path routing)
+  const qs = event.queryStringParameters || {};
+  if (qs.id) return qs.id;
+  // Fallback: try path-based ID extraction
   const path = event.rawPath || event.path || '';
   const match = path.match(/\/users\/([^/?#]+)/);
   return match ? match[1] : null;

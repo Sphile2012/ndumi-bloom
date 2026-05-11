@@ -166,7 +166,7 @@ export default function Services() {
           <p className="text-muted-foreground text-sm mb-6 italic">Ready to glow? Book your appointment today ✨</p>
           <Link to="/book">
             <Button size="lg" className="rounded-full px-12 py-6 text-base bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
-              Book Your Service 💅
+              Book Now 💅
             </Button>
           </Link>
         </div>
