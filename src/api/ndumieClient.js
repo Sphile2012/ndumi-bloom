@@ -41,6 +41,7 @@ async function request(path, options = {}, retries = 2) {
       
       clearTimeout(timeoutId);
       
+      // Check for empty response
       const raw = await res.text();
       let data = null;
       
@@ -94,6 +95,11 @@ async function request(path, options = {}, retries = 2) {
       // Final attempt failed, add more context to error
       if (err.name === 'AbortError') {
         err.message = 'Request timeout - please check your connection and try again';
+      }
+      
+      // Add more detailed error information for debugging
+      if (!err.status) {
+        err.message = `Network error: ${err.message}. Please check your internet connection.`;
       }
       
       throw err;

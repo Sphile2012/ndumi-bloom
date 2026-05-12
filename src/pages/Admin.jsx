@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ndumie } from "@/api/ndumieClient";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -154,6 +154,9 @@ function Dashboard() {
   const [newUser, setNewUser] = useState({ name: "", email: "", role: "user" });
   const [savingUser, setSavingUser] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  
+  // Ref to prevent concurrent fetches
+  const fetchingRef = useRef(false);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -161,19 +164,30 @@ function Dashboard() {
   };
 
   const fetchBookings = async (isRefresh = false) => {
+    // Prevent concurrent fetches
+    if (fetchingRef.current) {
+      console.log('Fetch already in progress, skipping');
+      return;
+    }
+    
+    fetchingRef.current = true;
+    
     // Don't set loading on refresh to avoid UI flicker
     if (!isRefresh) {
       setLoading(true);
       setIsInitialLoad(true);
     }
     setFetchError(null);
+    
     try {
       const result = await ndumie.entities.Booking.filter({});
-      // Enhanced validation: ensure result is a valid array before using .sort()
+      
+      // Enhanced validation: ensure result is a valid array
       if (!Array.isArray(result)) {
         console.warn('Bookings API returned non-array data:', result);
         throw new Error('Invalid data format received from server');
       }
+      
       // Filter out any null/undefined entries and validate each booking
       const validBookings = result.filter(booking => {
         if (!booking || typeof booking !== 'object') {
@@ -183,6 +197,7 @@ function Dashboard() {
         // Ensure required fields exist
         return booking.id && booking.client_name;
       });
+      
       // Sort newest date first with safe date handling
       validBookings.sort((a, b) => {
         try {
@@ -198,6 +213,7 @@ function Dashboard() {
           return 0;
         }
       });
+      
       setBookings(validBookings);
     } catch (err) {
       console.error("Failed to fetch bookings:", err);
@@ -214,6 +230,7 @@ function Dashboard() {
     } finally {
       setLoading(false);
       setIsInitialLoad(false);
+      fetchingRef.current = false;
     }
   };
 
@@ -231,10 +248,18 @@ function Dashboard() {
     fetchUsers();
     
     // Set up polling interval for bookings (every 30 seconds)
-    const interval = setInterval(() => fetchBookings(true), 30000);
+    const interval = setInterval(() => {
+      // Only refresh if not currently fetching
+      if (!fetchingRef.current) {
+        fetchBookings(true);
+      }
+    }, 30000);
     
-    // Cleanup interval on unmount
-    return () => clearInterval(interval);
+    // Cleanup interval and ref on unmount
+    return () => {
+      clearInterval(interval);
+      fetchingRef.current = false;
+    };
   }, []); // Empty dependency array - only run once on mount
 
   const addAnnouncement = async () => {
