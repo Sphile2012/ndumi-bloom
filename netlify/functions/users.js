@@ -30,14 +30,14 @@ function getId(event) {
 function isAdmin(event) {
   const h = event.headers || {};
   const token = h['x-admin-token'] || h['X-Admin-Token'] || '';
-  const expected = process.env.ADMIN_TOKEN || '';
+  const expected = process.env.ADMIN_TOKEN || process.env.VITE_ADMIN_PASSWORD || '';
   if (!expected) return token.length > 0;
   return token === expected;
 }
 
 function getSupabase() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   if (!url || !key) throw new Error('Supabase env vars not set');
   return createClient(url, key);
 }
