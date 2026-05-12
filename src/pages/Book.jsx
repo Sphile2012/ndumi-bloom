@@ -61,11 +61,16 @@ export default function Book() {
     if (slotsCache[dateStr]) { setBookedSlots(slotsCache[dateStr]); return; }
     setLoadingSlots(true);
     try {
-      const bookings = await ndumie.entities.Booking.filter({ preferred_date: dateStr });
-      const slots = bookings.filter(b => b.status !== "cancelled").map(b => b.preferred_time);
+      const result = await ndumie.entities.Booking.filter({ preferred_date: dateStr });
+      // Ensure result is a valid array before using .map()
+      const bookings = Array.isArray(result) ? result : [];
+      const slots = bookings
+        .filter(b => b && b.status !== "cancelled")
+        .map(b => b.preferred_time);
       setSlotsCache(prev => ({ ...prev, [dateStr]: slots }));
       setBookedSlots(slots);
-    } catch {
+    } catch (err) {
+      console.error("Failed to fetch booked slots:", err);
       setBookedSlots([]);
     } finally {
       setLoadingSlots(false);

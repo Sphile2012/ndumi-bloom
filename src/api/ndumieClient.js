@@ -77,55 +77,133 @@ const Booking = {
       Object.entries(filters).filter(([, v]) => v !== undefined && v !== '')
     );
     const qs = new URLSearchParams(clean).toString();
-    const data = await request(`/bookings${qs ? `?${qs}` : ''}`);
-    return Array.isArray(data) ? data : [];
+    try {
+      const data = await request(`/bookings${qs ? `?${qs}` : ''}`);
+      // Always return a valid array, even if response is malformed
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.error('Booking.filter error:', err);
+      throw err; // Re-throw to let caller handle
+    }
   },
-  create(data) {
-    return request('/bookings', { method: 'POST', body: JSON.stringify(data) });
+  async create(data) {
+    try {
+      const result = await request('/bookings', { method: 'POST', body: JSON.stringify(data) });
+      return result;
+    } catch (err) {
+      console.error('Booking.create error:', err);
+      throw err;
+    }
   },
-  update(id, data) {
-    return request(`/bookings?id=${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
+  async update(id, data) {
+    try {
+      const result = await request(`/bookings?id=${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
+      return result;
+    } catch (err) {
+      console.error('Booking.update error:', err);
+      throw err;
+    }
   },
-  delete(id) {
-    return request(`/bookings?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+  async delete(id) {
+    try {
+      const result = await request(`/bookings?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      return result;
+    } catch (err) {
+      console.error('Booking.delete error:', err);
+      throw err;
+    }
   },
 };
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 const User = {
   async list() {
-    const data = await request('/users');
-    return Array.isArray(data) ? data : [];
+    try {
+      const data = await request('/users');
+      // Always return a valid array, even if response is malformed
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.error('User.list error:', err);
+      throw err;
+    }
   },
-  create(data) {
-    return request('/users', { method: 'POST', body: JSON.stringify(data) });
+  async create(data) {
+    try {
+      const result = await request('/users', { method: 'POST', body: JSON.stringify(data) });
+      return result;
+    } catch (err) {
+      console.error('User.create error:', err);
+      throw err;
+    }
   },
-  update(id, data) {
-    return request(`/users?id=${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
+  async update(id, data) {
+    try {
+      const result = await request(`/users?id=${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
+      return result;
+    } catch (err) {
+      console.error('User.update error:', err);
+      throw err;
+    }
   },
-  delete(id) {
-    return request(`/users?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+  async delete(id) {
+    try {
+      const result = await request(`/users?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      return result;
+    } catch (err) {
+      console.error('User.delete error:', err);
+      throw err;
+    }
   },
   /** Seed known users from old system (one-time) */
-  seed() {
-    return request('/seed-users', { method: 'POST' });
+  async seed() {
+    try {
+      const result = await request('/seed-users', { method: 'POST' });
+      return result;
+    } catch (err) {
+      console.error('User.seed error:', err);
+      throw err;
+    }
   },
 };
 
 // ── Announcements ─────────────────────────────────────────────────────────────
 const Announcement = {
   async list() {
-    const data = await request('/announcements');
-    return Array.isArray(data) ? data : [];
+    try {
+      const data = await request('/announcements');
+      // Always return a valid array, even if response is malformed
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.error('Announcement.list error:', err);
+      throw err;
+    }
   },
-  create(data) {
-    return request('/announcements', { method: 'POST', body: JSON.stringify(data) });
+  async create(data) {
+    try {
+      const result = await request('/announcements', { method: 'POST', body: JSON.stringify(data) });
+      return result;
+    } catch (err) {
+      console.error('Announcement.create error:', err);
+      throw err;
+    }
   },
-  update(id, data) {
-    return request(`/announcements?id=${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
+  async update(id, data) {
+    try {
+      const result = await request(`/announcements?id=${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) });
+      return result;
+    } catch (err) {
+      console.error('Announcement.update error:', err);
+      throw err;
+    }
   },
-  delete(id) {
-    return request(`/announcements?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+  async delete(id) {
+    try {
+      const result = await request(`/announcements?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      return result;
+    } catch (err) {
+      console.error('Announcement.delete error:', err);
+      throw err;
+    }
   },
 };
 

@@ -43,12 +43,15 @@ function getSupabase() {
 }
 
 export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return respond({});
+  if (event.httpMethod === 'OPTIONS') {
+    return respond({});
+  }
 
   const method = event.httpMethod;
   const id = getId(event);
 
   try {
+    // Validate Supabase configuration
     const supabase = getSupabase();
 
     if (method === 'GET' && !id) {
@@ -59,12 +62,23 @@ export const handler = async (event) => {
         if (k !== 'id') query = query.eq(k, v);
       });
       const { data, error } = await query;
-      if (error) throw error;
-      return respond(data || []);
+      if (error) {
+        console.error('[bookings] GET error:', error.message);
+        throw error;
+      }
+      // Always return an array, even if empty
+      return respond(Array.isArray(data) ? data : []);
     }
 
     if (method === 'POST' && !id) {
-      const data = JSON.parse(event.body || '{}');
+      const body = event.body || '{}';
+      let data;
+      try {
+        data = JSON.parse(body);
+      } catch (parseError) {
+        console.error('[bookings] POST JSON parse error:', parseError.message);
+        return respond({ message: 'Invalid JSON in request body' }, 400);
+      }
       if (!data.client_name?.trim() || !data.client_phone?.trim()) {
         return respond({ message: 'client_name and client_phone are required' }, 400);
       }
@@ -76,34 +90,55 @@ export const handler = async (event) => {
         updated_date: new Date().toISOString(),
       };
       const { data: created, error } = await supabase.from('bookings').insert(booking).select().single();
-      if (error) throw error;
+      if (error) {
+        console.error('[bookings] POST insert error:', error.message);
+        throw error;
+      }
       return respond(created, 201);
     }
 
     if (method === 'PATCH' && id) {
       if (!isAdmin(event)) return respond({ message: 'Unauthorized' }, 401);
-      const updates = JSON.parse(event.body || '{}');
+      const body = event.body || '{}';
+      let updates;
+      try {
+        updates = JSON.parse(body);
+      } catch (parseError) {
+        console.error('[bookings] PATCH JSON parse error:', parseError.message);
+        return respond({ message: 'Invalid JSON in request body' }, 400);
+      }
       const { data: updated, error } = await supabase
         .from('bookings')
         .update({ ...updates, updated_date: new Date().toISOString() })
         .eq('id', id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('[bookings] PATCH update error:', error.message);
+        throw error;
+      }
       return respond(updated);
     }
 
     if (method === 'DELETE' && id) {
       if (!isAdmin(event)) return respond({ message: 'Unauthorized' }, 401);
       const { error } = await supabase.from('bookings').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        console.error('[bookings] DELETE error:', error.message);
+        throw error;
+      }
       return respond({ success: true });
     }
 
     return respond({ message: 'Method not allowed' }, 405);
 
   } catch (err) {
-    console.error('[bookings]', err.message);
-    return respond({ message: err.message || 'Internal server error' }, 500);
+    console.error('[bookings] handler error:', err.message, err);
+    const errorMessage = err.message || 'Internal server error';
+    // Provide more specific error messages for common issues
+    if (errorMessage.includes('env vars') || errorMessage.includes('SUPABASE')) {
+      return respond({ message: 'Server configuration error: Supabase environment variables are not set.' }, 500);
+    }
+    return respond({ message: errorMessage }, 500);
   }
 };

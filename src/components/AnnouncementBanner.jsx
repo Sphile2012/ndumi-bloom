@@ -13,14 +13,42 @@ const TYPE_STYLES = {
 export default function AnnouncementBanner() {
   const [announcements, setAnnouncements] = useState([]);
   const [dismissed, setDismissed] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    ndumie.entities.Announcement.list()
-      .then(data => setAnnouncements(data))
-      .catch(() => {});
+    let isMounted = true;
+
+    const loadAnnouncements = async () => {
+      try {
+        const data = await ndumie.entities.Announcement.list();
+        // Ensure data is a valid array before setting
+        if (isMounted) {
+          setAnnouncements(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error("Failed to load announcements:", err);
+        // Set empty array on error to prevent crashes
+        if (isMounted) {
+          setAnnouncements([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadAnnouncements();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const visible = announcements.filter(a => !dismissed.includes(a.id));
+  // Safety check: ensure announcements is always an array
+  const safeAnnouncements = Array.isArray(announcements) ? announcements : [];
+  const visible = safeAnnouncements.filter(a => a && !dismissed.includes(a.id));
+
   if (visible.length === 0) return null;
 
   return (

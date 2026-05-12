@@ -76,7 +76,7 @@ function LoginScreen() {
         <div className="text-center mb-8">
           <p className="text-5xl mb-4">💅</p>
           <h2 className="font-heading text-2xl font-bold text-foreground mb-1">Admin Login</h2>
-          <p className="text-muted-foreground text-sm">Bloom Skills &amp; Beauty</p>
+          <p className="text-muted-foreground text-sm">Bloom Skills & Beauty</p>
         </div>
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
@@ -135,6 +135,7 @@ function Dashboard() {
   const [updating, setUpdating] = useState(null);
   const [toast, setToast] = useState(null);
   const [fetchError, setFetchError] = useState(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [activeTab, setActiveTab] = useState("services");
   const [announcements, setAnnouncements] = useState([]);
   const [newMsg, setNewMsg] = useState("");
@@ -159,11 +160,17 @@ function Dashboard() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const fetchBookings = async () => {
-    setLoading(true);
+  const fetchBookings = async (isRefresh = false) => {
+    // Don't set loading on refresh to avoid UI flicker
+    if (!isRefresh) {
+      setLoading(true);
+      setIsInitialLoad(true);
+    }
     setFetchError(null);
     try {
-      const data = await ndumie.entities.Booking.filter({});
+      const result = await ndumie.entities.Booking.filter({});
+      // Ensure result is a valid array before using .sort()
+      const data = Array.isArray(result) ? result : [];
       // Sort newest date first
       data.sort((a, b) => {
         if (b.preferred_date !== a.preferred_date) return b.preferred_date > a.preferred_date ? 1 : -1;
@@ -178,8 +185,13 @@ function Dashboard() {
           ? "⚠️ Server configuration error: Supabase environment variables are not set. Please add SUPABASE_URL and SUPABASE_ANON_KEY to your Netlify site settings → Environment Variables."
           : `⚠️ ${msg}. Please check your Netlify function logs and ensure environment variables (SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_TOKEN) are set in Netlify → Site Settings → Environment Variables.`
       );
+      // Keep existing bookings if this is a refresh/retry
+      if (!isRefresh) {
+        setBookings([]);
+      }
     } finally {
       setLoading(false);
+      setIsInitialLoad(false);
     }
   };
 
@@ -191,12 +203,17 @@ function Dashboard() {
   };
 
   useEffect(() => {
+    // Initial data load
     fetchBookings();
     fetchAnnouncements();
     fetchUsers();
-    const interval = setInterval(fetchBookings, 30000);
+    
+    // Set up polling interval for bookings (every 30 seconds)
+    const interval = setInterval(() => fetchBookings(true), 30000);
+    
+    // Cleanup interval on unmount
     return () => clearInterval(interval);
-  }, []);
+  }, []); // Empty dependency array - only run once on mount
 
   const addAnnouncement = async () => {
     if (!newMsg.trim()) return;
@@ -408,12 +425,15 @@ function Dashboard() {
     }
   };
 
-  const filtered = bookings.filter(b => {
+  // Safe filtering - ensure bookings is always an array
+  const safeBookings = Array.isArray(bookings) ? bookings : [];
+  const filtered = safeBookings.filter(b => {
+    if (!b) return false; // Skip null/undefined entries
     if (b.service_category === "announcement") return false;
     const matchSearch =
-      b.client_name?.toLowerCase().includes(search.toLowerCase()) ||
-      b.client_phone?.includes(search) ||
-      b.service_detail?.toLowerCase().includes(search.toLowerCase());
+      (b.client_name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (b.client_phone || "").includes(search) ||
+      (b.service_detail || "").toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "all" || b.status === filterStatus;
     const isCourse = b.service_category === "Beginner Nail Course";
     if (activeTab === "services") return matchSearch && matchStatus && !isCourse;
@@ -422,11 +442,11 @@ function Dashboard() {
   });
 
   const counts = {
-    all: bookings.length,
-    pending: bookings.filter(b => b.status === "pending").length,
-    confirmed: bookings.filter(b => b.status === "confirmed").length,
-    completed: bookings.filter(b => b.status === "completed").length,
-    cancelled: bookings.filter(b => b.status === "cancelled").length,
+    all: safeBookings.length,
+    pending: safeBookings.filter(b => b?.status === "pending").length,
+    confirmed: safeBookings.filter(b => b?.status === "confirmed").length,
+    completed: safeBookings.filter(b => b?.status === "completed").length,
+    cancelled: safeBookings.filter(b => b?.status === "cancelled").length,
   };
 
   return (
@@ -451,7 +471,7 @@ function Dashboard() {
               )}
             </h1>
             <p className="text-sm text-muted-foreground mt-1 italic flex items-center gap-2">
-              Bloom Skills &amp; Beauty
+              Bloom Skills & Beauty
               <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block animate-pulse" />
                 Live
@@ -969,7 +989,7 @@ function Dashboard() {
                 </Button>
               </div>
             )}
-            {loading ? (
+            {loading && isInitialLoad ? (
               <div className="flex items-center justify-center py-20 gap-3 text-muted-foreground">
                 <Loader2 className="w-5 h-5 animate-spin" /> Loading bookings...
               </div>
@@ -980,7 +1000,9 @@ function Dashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {filtered.map((b, i) => {
+                {/* Safe map - ensure filtered is an array */}
+                {Array.isArray(filtered) && filtered.map((b, i) => {
+                  if (!b) return null; // Skip null/undefined entries
                   const StatusIcon = STATUS_ICONS[b.status] || Clock;
                   return (
                     <motion.div
@@ -1129,4 +1151,3 @@ export default function Admin() {
 
   return <Dashboard />;
 }
-
