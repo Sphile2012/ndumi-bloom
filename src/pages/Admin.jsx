@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { ndumie } from "@/api/ndumieClient";
 import { useAuth } from "@/lib/AuthContext";
-import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -47,7 +46,12 @@ function LoginScreen() {
       } catch (_) {
         // Local dev fallback
         if (ADMIN_EMAILS.includes(emailLower)) {
-          user = { role: "admin", email: emailLower, name: emailLower.split("@")[0] };
+          user = {
+            role: "admin",
+            email: emailLower,
+            name: emailLower.split("@")[0],
+            token: import.meta.env.VITE_ADMIN_PASSWORD ?? "",
+          };
         } else {
           throw new Error("This email is not registered as an admin.");
         }
@@ -56,7 +60,7 @@ function LoginScreen() {
         role:  user.role,
         email: user.email,
         name:  user.name || "",
-        token: import.meta.env.VITE_ADMIN_PASSWORD || "",
+        token: user.token ?? import.meta.env.VITE_ADMIN_PASSWORD ?? "",
       }));
       window.location.reload();
     } catch (err) {

@@ -45,6 +45,7 @@ export default function Login() {
             role:  "admin",
             email: emailLower,
             name:  emailLower.split("@")[0],
+            token: import.meta.env.VITE_ADMIN_PASSWORD ?? "",
           };
         } else {
           throw new Error("This email is not registered as an admin.");
@@ -58,7 +59,7 @@ export default function Login() {
           role:  user.role,
           email: user.email,
           name:  user.name || "",
-          token: import.meta.env.VITE_ADMIN_PASSWORD || "",
+          token: user.token ?? import.meta.env.VITE_ADMIN_PASSWORD ?? "",
         })
       );
 

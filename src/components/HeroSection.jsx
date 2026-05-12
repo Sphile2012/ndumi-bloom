@@ -17,7 +17,7 @@ export default function HeroSection({ heroImage }) {
         <img
           src={heroImage}
           alt="Beautiful nail art by Bloom Skills & Beauty"
-          fetchpriority="high"
+          fetchPriority="high"
           decoding="async"
           className="w-full h-full object-cover scale-105"
           style={{ transformOrigin: "center center" }}
@@ -105,14 +105,16 @@ export default function HeroSection({ heroImage }) {
             className="flex flex-wrap items-center gap-6 sm:gap-8 pt-8 border-t border-white/10"
           >
             {stats.map((stat, i) => (
-              <div key={stat.label}>
-                <p className="font-heading text-2xl font-bold text-white">{stat.value}</p>
-                <p className="text-xs text-white/50 uppercase tracking-widest mt-0.5">{stat.label}</p>
+              <div key={stat.label} className="flex items-center gap-6 sm:gap-8">
+                <div>
+                  <p className="font-heading text-2xl font-bold text-white">{stat.value}</p>
+                  <p className="text-xs text-white/50 uppercase tracking-widest mt-0.5">{stat.label}</p>
+                </div>
                 {i < stats.length - 1 && (
-                  <div className="hidden" />
+                  <div className="w-px h-10 bg-white/15 hidden sm:block" />
                 )}
               </div>
-            )).reduce((acc, el, i) => i === 0 ? [el] : [...acc, <div key={`div-${i}`} className="w-px h-10 bg-white/15" />, el], [])}
+            ))}
           </motion.div>
         </div>
       </div>

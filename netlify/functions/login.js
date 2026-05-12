@@ -38,7 +38,9 @@ export const handler = async (event) => {
     if (error || !data) return respond({ message: 'This email is not registered.' }, 401);
     if (data.role !== 'admin') return respond({ message: 'Access denied. Admin accounts only.' }, 403);
 
-    return respond({ id: data.id, name: data.name, email: data.email, role: data.role });
+    // Issue API token from server so production builds do not depend on VITE_ADMIN_PASSWORD.
+    const token = process.env.ADMIN_TOKEN || '';
+    return respond({ id: data.id, name: data.name, email: data.email, role: data.role, token });
 
   } catch (err) {
     console.error('[login]', err.message);

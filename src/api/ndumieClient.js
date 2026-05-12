@@ -31,15 +31,32 @@ async function request(path, options = {}, retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const res = await fetch(`${BASE}${path}`, { ...options, headers });
+      const raw = await res.text();
+      let data = null;
+      if (raw) {
+        try {
+          data = JSON.parse(raw);
+        } catch {
+          const snippet = raw.slice(0, 120).replace(/\s+/g, ' ');
+          const isHtml = /^\s*</.test(raw);
+          throw Object.assign(
+            new Error(
+              isHtml
+                ? 'API returned HTML instead of JSON (Netlify function may be missing or blocked). Check function deploy logs and netlify.toml redirects.'
+                : `Invalid API response: ${snippet}`,
+            ),
+            { status: res.status },
+          );
+        }
+      }
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: res.statusText }));
-        throw Object.assign(new Error(err.message || 'Request failed'), {
+        throw Object.assign(new Error(data?.message || res.statusText || 'Request failed'), {
           status: res.status,
-          data: err,
+          data,
         });
       }
-      return res.json();
+      return data;
     } catch (err) {
       // Don't retry on 4xx client errors
       if (err.status >= 400 && err.status < 500) throw err;
@@ -55,12 +72,13 @@ async function request(path, options = {}, retries = 2) {
 
 // ── Bookings ──────────────────────────────────────────────────────────────────
 const Booking = {
-  filter(filters = {}) {
+  async filter(filters = {}) {
     const clean = Object.fromEntries(
       Object.entries(filters).filter(([, v]) => v !== undefined && v !== '')
     );
     const qs = new URLSearchParams(clean).toString();
-    return request(`/bookings${qs ? `?${qs}` : ''}`);
+    const data = await request(`/bookings${qs ? `?${qs}` : ''}`);
+    return Array.isArray(data) ? data : [];
   },
   create(data) {
     return request('/bookings', { method: 'POST', body: JSON.stringify(data) });
@@ -75,8 +93,9 @@ const Booking = {
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 const User = {
-  list() {
-    return request('/users');
+  async list() {
+    const data = await request('/users');
+    return Array.isArray(data) ? data : [];
   },
   create(data) {
     return request('/users', { method: 'POST', body: JSON.stringify(data) });
@@ -95,8 +114,9 @@ const User = {
 
 // ── Announcements ─────────────────────────────────────────────────────────────
 const Announcement = {
-  list() {
-    return request('/announcements');
+  async list() {
+    const data = await request('/announcements');
+    return Array.isArray(data) ? data : [];
   },
   create(data) {
     return request('/announcements', { method: 'POST', body: JSON.stringify(data) });
@@ -118,7 +138,19 @@ const auth = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     });
-    const data = await res.json();
+    const raw = await res.text();
+    let data = {};
+    if (raw) {
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        throw new Error(
+          /^\s*</.test(raw)
+            ? 'Login API returned HTML instead of JSON. Check Netlify function deployment.'
+            : 'Invalid response from login.',
+        );
+      }
+    }
     if (!res.ok) throw new Error(data.message || 'Login failed');
     return data;
   },

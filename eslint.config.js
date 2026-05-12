@@ -1,3 +1,4 @@
+import { fixupPluginRules } from "@eslint/compat";
 import globals from "globals";
 import pluginJs from "@eslint/js";
 import pluginReact from "eslint-plugin-react";
@@ -7,9 +8,7 @@ import pluginUnusedImports from "eslint-plugin-unused-imports";
 export default [
   {
     files: [
-      "src/components/**/*.{js,mjs,cjs,jsx}",
-      "src/pages/**/*.{js,mjs,cjs,jsx}",
-      "src/Layout.jsx",
+      "src/**/*.{js,mjs,cjs,jsx}",
     ],
     ignores: ["src/lib/**/*", "src/components/ui/**/*"],
     ...pluginJs.configs.recommended,
@@ -32,7 +31,7 @@ export default [
     plugins: {
       react: pluginReact,
       "react-hooks": pluginReactHooks,
-      "unused-imports": pluginUnusedImports,
+      "unused-imports": fixupPluginRules(pluginUnusedImports),
     },
     rules: {
       "no-unused-vars": "off",

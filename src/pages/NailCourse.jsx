@@ -80,9 +80,7 @@ export default function NailCourse() {
               </div>
             </div>
           </div>
-          </div>
-
-
+        </div>
       </div>
     </div>
   );
