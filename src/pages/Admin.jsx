@@ -169,14 +169,36 @@ function Dashboard() {
     setFetchError(null);
     try {
       const result = await ndumie.entities.Booking.filter({});
-      // Ensure result is a valid array before using .sort()
-      const data = Array.isArray(result) ? result : [];
-      // Sort newest date first
-      data.sort((a, b) => {
-        if (b.preferred_date !== a.preferred_date) return b.preferred_date > a.preferred_date ? 1 : -1;
-        return (b.created_date || "") > (a.created_date || "") ? 1 : -1;
+      // Enhanced validation: ensure result is a valid array before using .sort()
+      if (!Array.isArray(result)) {
+        console.warn('Bookings API returned non-array data:', result);
+        throw new Error('Invalid data format received from server');
+      }
+      // Filter out any null/undefined entries and validate each booking
+      const validBookings = result.filter(booking => {
+        if (!booking || typeof booking !== 'object') {
+          console.warn('Invalid booking entry found:', booking);
+          return false;
+        }
+        // Ensure required fields exist
+        return booking.id && booking.client_name;
       });
-      setBookings(data);
+      // Sort newest date first with safe date handling
+      validBookings.sort((a, b) => {
+        try {
+          const dateA = new Date(a.preferred_date || '1970-01-01');
+          const dateB = new Date(b.preferred_date || '1970-01-01');
+          if (dateB.getTime() !== dateA.getTime()) return dateB.getTime() - dateA.getTime();
+          
+          const createdA = new Date(a.created_date || '1970-01-01');
+          const createdB = new Date(b.created_date || '1970-01-01');
+          return createdB.getTime() - createdA.getTime();
+        } catch (err) {
+          console.warn('Error sorting bookings:', err);
+          return 0;
+        }
+      });
+      setBookings(validBookings);
     } catch (err) {
       console.error("Failed to fetch bookings:", err);
       const msg = err?.message || "Failed to load bookings";
@@ -267,41 +289,59 @@ function Dashboard() {
   };
 
   const updateStatus = async (booking, newStatus) => {
+    if (!booking || !booking.id) {
+      showToast('Invalid booking data', 'error');
+      return;
+    }
     setUpdating(booking.id);
     try {
-      await ndumie.entities.Booking.update(booking.id, { status: newStatus });
-      setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, status: newStatus } : b));
+      const updatedBooking = await ndumie.entities.Booking.update(booking.id, { status: newStatus });
+      // Update local state with the response from server
+      setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, status: newStatus, ...updatedBooking } : b));
 
       if (newStatus === "confirmed" || newStatus === "cancelled") {
         // Send email notification if client has email
         if (booking.client_email) {
           // Email notification can be added via a Netlify Function in future
         }
-        // Open WhatsApp to send message to client
-        const rawPhone = booking.client_phone?.replace(/\D/g, '') || '';
-        const phone = rawPhone.startsWith('27') ? rawPhone : rawPhone.startsWith('0') ? '27' + rawPhone.slice(1) : '27' + rawPhone;
-        const msg = newStatus === "confirmed"
-          ? `Hi ${booking.client_name}! 🌸 Your booking for *${booking.service_detail}* on *${booking.preferred_date}* at *${booking.preferred_time}* has been *confirmed*. We can't wait to see you! 💅\n\n📍 Sangro House, Durban\n📞 079 806 0310\n\n⏰ *Please arrive at least 15 minutes early.*\n\n⚠️ *Late Arrival Policy:* If you arrive 15 minutes or more late, your booking will be automatically cancelled. Please WhatsApp us if you are running behind.\n\n❌ *Cancellation Policy:* Please notify us at least 24 hours in advance if you need to cancel or reschedule.\n\n— Bloom Skills & Beauty`
-          : `Hi ${booking.client_name}, we're sorry but your booking for *${booking.service_detail}* on *${booking.preferred_date}* has been *cancelled*. Please WhatsApp us to rebook. 💬\n\n— Bloom Skills & Beauty`;
-        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+        // Open WhatsApp to send message to client with safe phone handling
+        try {
+          const rawPhone = booking.client_phone?.replace(/\D/g, '') || '';
+          const phone = rawPhone.startsWith('27') ? rawPhone : rawPhone.startsWith('0') ? '27' + rawPhone.slice(1) : rawPhone ? '27' + rawPhone : '';
+          if (phone) {
+            const msg = newStatus === "confirmed"
+              ? `Hi ${booking.client_name || 'Client'}! 🌸 Your booking for *${booking.service_detail || 'your service'}* on *${booking.preferred_date || 'your date'}* at *${booking.preferred_time || 'your time'}* has been *confirmed*. We can't wait to see you! 💅\n\n📍 Sangro House, Durban\n📞 079 806 0310\n\n⏰ *Please arrive at least 15 minutes early.*\n\n⚠️ *Late Arrival Policy:* If you arrive 15 minutes or more late, your booking will be automatically cancelled. Please WhatsApp us if you are running behind.\n\n❌ *Cancellation Policy:* Please notify us at least 24 hours in advance if you need to cancel or reschedule.\n\n— Bloom Skills & Beauty`
+              : `Hi ${booking.client_name || 'Client'}, we're sorry but your booking for *${booking.service_detail || 'your service'}* on *${booking.preferred_date || 'your date'}* has been *cancelled*. Please WhatsApp us to rebook. 💬\n\n— Bloom Skills & Beauty`;
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+          }
+        } catch (whatsappErr) {
+          console.warn('Failed to open WhatsApp:', whatsappErr);
+          showToast('Booking updated but WhatsApp failed', 'warning');
+        }
       }
       showToast(`Booking ${newStatus} ✓`);
     } catch (err) {
-      showToast(`Failed to update booking`, "error");
+      console.error('Failed to update booking status:', err);
+      showToast(`Failed to update booking: ${err.message || 'Unknown error'}`, "error");
     } finally {
       setUpdating(null);
     }
   };
 
   const deleteBooking = async (bookingId) => {
-    if (window.confirm('Are you sure you want to delete this booking?')) {
+    if (!bookingId) {
+      showToast('Invalid booking ID', 'error');
+      return;
+    }
+    if (window.confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
       setUpdating(bookingId);
       try {
         await ndumie.entities.Booking.delete(bookingId);
         setBookings(prev => prev.filter(b => b.id !== bookingId));
-        showToast('Booking deleted ✓');
+        showToast('Booking deleted successfully ✓');
       } catch (err) {
-        showToast('Failed to delete booking', 'error');
+        console.error('Failed to delete booking:', err);
+        showToast(`Failed to delete booking: ${err.message || 'Unknown error'}`, 'error');
       } finally {
         setUpdating(null);
       }
@@ -425,8 +465,8 @@ function Dashboard() {
     }
   };
 
-  // Safe filtering - ensure bookings is always an array
-  const safeBookings = Array.isArray(bookings) ? bookings : [];
+  // Safe filtering - ensure bookings is always an array and validate entries
+  const safeBookings = Array.isArray(bookings) ? bookings.filter(b => b && typeof b === 'object' && b.id) : [];
   const filtered = safeBookings.filter(b => {
     if (!b) return false; // Skip null/undefined entries
     if (b.service_category === "announcement") return false;
@@ -460,62 +500,66 @@ function Dashboard() {
 
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3">
-              Dashboard
-              {counts.pending > 0 && (
-                <span className="inline-flex items-center gap-1.5 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full animate-pulse">
-                  🔔 {counts.pending} new
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="font-heading text-xl sm:text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-3">
+                Dashboard
+                {counts.pending > 0 && (
+                  <span className="inline-flex items-center gap-1.5 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full animate-pulse">
+                    🔔 {counts.pending} new
+                  </span>
+                )}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1 italic flex items-center gap-2">
+                Bloom Skills & Beauty
+                <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block animate-pulse" />
+                  Live
                 </span>
-              )}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1 italic flex items-center gap-2">
-              Bloom Skills & Beauty
-              <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block animate-pulse" />
-                Live
-              </span>
-            </p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" onClick={fetchBookings} className="rounded-xl gap-2 self-start sm:self-auto">
-              <RefreshCw className="w-4 h-4" /> Refresh
-            </Button>
-            {bookings.length > 0 && (
-              <Button variant="destructive" onClick={clearAllBookings} className="rounded-xl gap-2 self-start sm:self-auto">
-                🗑️ Clear All
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" onClick={fetchBookings} className="rounded-xl gap-2 w-full sm:w-auto justify-center">
+                <RefreshCw className="w-4 h-4" /> Refresh
               </Button>
-            )}
+              {bookings.length > 0 && (
+                <Button variant="destructive" onClick={clearAllBookings} className="rounded-xl gap-2 w-full sm:w-auto justify-center">
+                  🗑️ Clear All
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-0 mb-6 border-b border-border overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
-          {[
-            { id: "services",      label: "Services",         emoji: "💅" },
-            { id: "enrolled",      label: "Enrolled Courses", emoji: "🎓" },
-            { id: "analytics",     label: "Analytics",        emoji: "📊" },
-            { id: "announcements", label: "Announcements",    emoji: "📢" },
-            { id: "users",         label: "Users",            emoji: "👥" },
-            { id: "recalled",      label: "Recently Deleted", emoji: "🗑️" },
-            { id: "webservices",   label: "Web Services",     emoji: "🌐" },
-            { id: "whatsapp",      label: "WhatsApp",         emoji: "💬" },
-            { id: "migrate",       label: "Import Data",      emoji: "📥" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <span className="text-base leading-none">{tab.emoji}</span>
-              <span>{tab.label}</span>
-            </button>
-          ))}
+          <div className="flex gap-0 min-w-max sm:min-w-0 sm:flex-wrap">
+            {[
+              { id: "services",      label: "Services",         emoji: "💅" },
+              { id: "enrolled",      label: "Courses",          emoji: "🎓" },
+              { id: "analytics",     label: "Analytics",        emoji: "📊" },
+              { id: "announcements", label: "News",             emoji: "📢" },
+              { id: "users",         label: "Users",            emoji: "👥" },
+              { id: "recalled",      label: "Deleted",          emoji: "🗑️" },
+              { id: "webservices",   label: "Web",              emoji: "🌐" },
+              { id: "whatsapp",      label: "Chat",             emoji: "💬" },
+              { id: "migrate",       label: "Import",           emoji: "📥" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className="text-sm sm:text-base leading-none">{tab.emoji}</span>
+                <span className="hidden xs:inline sm:inline">{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Analytics Tab */}
@@ -941,21 +985,23 @@ function Dashboard() {
         {/* Stats - Only show for Services/Enrolled tabs */}
         {(activeTab === "services" || activeTab === "enrolled") && (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+            {/* Stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
               {[
-                { label: "Pending", count: counts.pending, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200" },                { label: "Confirmed", count: counts.confirmed, color: "text-blue-600", bg: "bg-blue-50 border-blue-200" },
+                { label: "Pending", count: counts.pending, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200" },                
+                { label: "Confirmed", count: counts.confirmed, color: "text-blue-600", bg: "bg-blue-50 border-blue-200" },
                 { label: "Completed", count: counts.completed, color: "text-green-600", bg: "bg-green-50 border-green-200" },
                 { label: "Cancelled", count: counts.cancelled, color: "text-red-600", bg: "bg-red-50 border-red-200" },
               ].map((stat) => (
-                <div key={stat.label} className={`rounded-2xl border p-4 ${stat.bg}`}>
-                  <p className={`font-heading text-2xl font-black ${stat.color}`}>{stat.count}</p>
+                <div key={stat.label} className={`rounded-2xl border p-3 sm:p-4 ${stat.bg}`}>
+                  <p className={`font-heading text-lg sm:text-2xl font-black ${stat.color}`}>{stat.count}</p>
                   <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
                 </div>
               ))}
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <div className="flex flex-col gap-3 mb-6">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -966,7 +1012,7 @@ function Dashboard() {
                 />
               </div>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-full sm:w-44 rounded-xl h-11">
+                <SelectTrigger className="w-full rounded-xl h-11">
                   <SelectValue placeholder="Filter status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1000,9 +1046,13 @@ function Dashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {/* Safe map - ensure filtered is an array */}
+                {/* Safe map with enhanced validation */}
                 {Array.isArray(filtered) && filtered.map((b, i) => {
-                  if (!b) return null; // Skip null/undefined entries
+                  // Skip invalid entries
+                  if (!b || typeof b !== 'object' || !b.id) {
+                    console.warn('Skipping invalid booking entry:', b);
+                    return null;
+                  }
                   const StatusIcon = STATUS_ICONS[b.status] || Clock;
                   return (
                     <motion.div
@@ -1054,11 +1104,11 @@ function Dashboard() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex flex-wrap gap-2 shrink-0">
+                        <div className="flex flex-col sm:flex-row flex-wrap gap-2 shrink-0">
                           {b.status === "pending" && (
                             <Button
                               size="sm"
-                              className="rounded-xl text-xs h-8 bg-blue-600 hover:bg-blue-700 text-white"
+                              className="rounded-xl text-xs h-8 bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto justify-center"
                               onClick={() => updateStatus(b, "confirmed")}
                               disabled={updating === b.id}
                             >
@@ -1068,7 +1118,7 @@ function Dashboard() {
                           {(b.status === "pending" || b.status === "confirmed") && (
                             <Button
                               size="sm"
-                              className="rounded-xl text-xs h-8 bg-green-600 hover:bg-green-700 text-white"
+                              className="rounded-xl text-xs h-8 bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto justify-center"
                               onClick={() => updateStatus(b, "completed")}
                               disabled={updating === b.id}
                             >
@@ -1079,7 +1129,7 @@ function Dashboard() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="rounded-xl text-xs h-8 border-red-200 text-red-600 hover:bg-red-50"
+                              className="rounded-xl text-xs h-8 border-red-200 text-red-600 hover:bg-red-50 w-full sm:w-auto justify-center"
                               onClick={() => updateStatus(b, "cancelled")}
                               disabled={updating === b.id}
                             >
@@ -1089,7 +1139,7 @@ function Dashboard() {
                           {(b.status === "cancelled" || b.status === "completed") && (
                             <Button
                               size="sm"
-                              className="rounded-xl text-xs h-8 bg-amber-500 hover:bg-amber-600 text-white"
+                              className="rounded-xl text-xs h-8 bg-amber-500 hover:bg-amber-600 text-white w-full sm:w-auto justify-center"
                               onClick={() => updateStatus(b, "pending")}
                               disabled={updating === b.id}
                             >
@@ -1100,15 +1150,16 @@ function Dashboard() {
                             href={`https://wa.me/${(() => { const r = b.client_phone?.replace(/\D/g,'') || ''; return r.startsWith('27') ? r : r.startsWith('0') ? '27'+r.slice(1) : '27'+r; })()}?text=${encodeURIComponent(`Hi ${b.client_name}! 🌸 Your booking for ${b.service_detail} on ${b.preferred_date} at ${b.preferred_time} is confirmed. See you at Bloom Skills & Beauty! 💅`)}`}
                             target="_blank"
                             rel="noopener noreferrer"
+                            className="w-full sm:w-auto"
                           >
-                            <Button size="sm" variant="outline" className="rounded-xl text-xs h-8 border-green-300 text-green-700 hover:bg-green-50">
+                            <Button size="sm" variant="outline" className="rounded-xl text-xs h-8 border-green-300 text-green-700 hover:bg-green-50 w-full sm:w-auto justify-center">
                               💬 WhatsApp
                             </Button>
                           </a>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="rounded-xl text-xs h-8 border-red-300 text-red-600 hover:bg-red-50"
+                            className="rounded-xl text-xs h-8 border-red-300 text-red-600 hover:bg-red-50 w-full sm:w-auto justify-center"
                             onClick={() => deleteBooking(b.id)}
                             disabled={updating === b.id}
                           >

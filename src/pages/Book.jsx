@@ -151,12 +151,12 @@ export default function Book() {
         </motion.div>
 
         {/* Progress Bar */}
-        <div className="mb-10">
+        <div className="mb-6 sm:mb-10">
           <div className="flex items-center justify-between relative">
-            <div className="absolute top-5 left-5 right-5 h-0.5 bg-border z-0" />
+            <div className="absolute top-5 left-2 sm:left-5 right-2 sm:right-5 h-0.5 bg-border z-0" />
             <div
-              className="absolute top-5 left-5 h-0.5 bg-primary z-0 transition-all duration-500"
-              style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%`, maxWidth: "calc(100% - 40px)" }}
+              className="absolute top-5 left-2 sm:left-5 h-0.5 bg-primary z-0 transition-all duration-500"
+              style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%`, maxWidth: "calc(100% - 32px)" }}
             />
             {STEPS.map((s) => {
               const Icon = s.icon;
@@ -164,10 +164,10 @@ export default function Book() {
               const active = step === s.id;
               return (
                 <div key={s.id} className="flex flex-col items-center gap-2 z-10">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${done ? "bg-primary border-primary text-primary-foreground" : active ? "bg-background border-primary text-primary shadow-lg shadow-primary/20" : "bg-background border-border text-muted-foreground"}`}>
-                    {done ? <CheckCircle2 className="w-5 h-5" /> : <Icon className="w-4 h-4" />}
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${done ? "bg-primary border-primary text-primary-foreground" : active ? "bg-background border-primary text-primary shadow-lg shadow-primary/20" : "bg-background border-border text-muted-foreground"}`}>
+                    {done ? <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <Icon className="w-3 h-3 sm:w-4 sm:h-4" />}
                   </div>
-                  <span className={`text-xs font-medium hidden sm:block transition-colors ${active ? "text-primary" : done ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</span>
+                  <span className={`text-xs font-medium transition-colors ${active ? "text-primary" : done ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</span>
                 </div>
               );
             })}
@@ -178,7 +178,7 @@ export default function Book() {
           <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-800">⚠️ {error}</div>
         )}
 
-        <div ref={cardRef} className="bg-card rounded-3xl border border-border/50 shadow-xl shadow-primary/5 overflow-hidden">
+        <div ref={cardRef} className="bg-card rounded-2xl sm:rounded-3xl border border-border/50 shadow-xl shadow-primary/5 overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -187,7 +187,7 @@ export default function Book() {
               animate="center"
               exit="exit"
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="p-4 sm:p-6 md:p-10"
+              className="p-4 sm:p-6 md:p-8 lg:p-10"
             >
 
               {/* STEP 1: Personal Details */}
@@ -237,9 +237,9 @@ export default function Book() {
                     <Calendar mode="range" selected={dateRange}
                       onSelect={(range) => setDateRange(range || { from: undefined, to: undefined })}
                       disabled={(d) => { const today = new Date(); today.setHours(0,0,0,0); return d < today || d.getDay() === 0; }}
-                      className="rounded-xl border border-border" />
+                      className="rounded-xl border border-border text-sm sm:text-base" />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="bg-secondary/50 rounded-xl p-3 text-center">
                       <p className="text-xs text-muted-foreground mb-1">Start Date</p>
                       <p className="text-sm font-semibold text-foreground">{dateRange.from ? format(dateRange.from, "d MMM yyyy") : "Not selected"}</p>
