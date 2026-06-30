@@ -24,8 +24,8 @@ export default function BookingConfirmed() {
   }
 
   const whatsappMsg = isCourse
-    ? `Hi Bloom Skills & Beauty! 🌸\n\nI've just enrolled in the *Beginner Nail Course* online!\n\n👤 *Name:* ${booking.client_name}\n📞 *Phone:* ${booking.client_phone}\n🎓 *Course:* ${booking.service_detail}\n📅 *Start Date:* ${booking.preferred_date}\n💰 *Course Fee:* R${booking.price}\n\nPlease find my *R500 registration deposit* proof of payment attached. Thank you! 💅✨`
-    : `Hi Bloom Skills & Beauty! 🌸\n\nI've just completed my booking online!\n\n👤 *Name:* ${booking.client_name}\n📞 *Phone:* ${booking.client_phone}\n💅 *Service:* ${booking.service_detail}\n📅 *Date:* ${booking.preferred_date}\n⏰ *Time:* ${booking.preferred_time}\n\nPlease find my *R100 deposit* proof of payment attached. See you soon! 💅`;
+    ? `Hi Bloom Skills & Beauty!\n\nI've just enrolled in the *Beginner Nail Course* online!\n\n*Name:* ${booking.client_name}\n*Phone:* ${booking.client_phone}\n*Course:* ${booking.service_detail}\n*Start Date:* ${booking.preferred_date}\n*Course Fee:* R${booking.price}\n\nPlease find my *R500 registration deposit* proof of payment attached. Thank you!`
+    : `Hi Bloom Skills & Beauty!\n\nI've just completed my booking online!\n\n*Name:* ${booking.client_name}\n*Phone:* ${booking.client_phone}\n*Service:* ${booking.service_detail}\n*Date:* ${booking.preferred_date}\n*Time:* ${booking.preferred_time}\n\nPlease find my *R100 deposit* proof of payment attached. See you soon!`;
 
   const emailSubject = isCourse
     ? `Course Enrolment - ${booking.client_name}`
