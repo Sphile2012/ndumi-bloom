@@ -112,7 +112,8 @@ export default function Book() {
           status: "pending",
         };
         const created = await ndumie.entities.Booking.create(bookingData);
-        setBookingCreated(created || bookingData);
+        // Merge local bookingData with API response so all fields are always present
+        setBookingCreated({ ...bookingData, ...(created || {}) });
         setStep(step + 1);
         setError("");
       } catch (err) {
