@@ -23,9 +23,35 @@ export default function BookingConfirmed() {
     );
   }
 
+  const nl = "%0A";
+  const enc = encodeURIComponent;
   const whatsappMsg = isCourse
-    ? `Hi Bloom Skills & Beauty! 🌸\n\nI've just enrolled in the *Beginner Nail Course* online!\n\n👤 *Name:* ${booking.client_name}\n📞 *Phone:* ${booking.client_phone}\n🎓 *Course:* ${booking.service_detail}\n📅 *Start Date:* ${booking.preferred_date}\n💰 *Course Fee:* R${booking.price}\n\nPlease find my *R500 registration deposit* proof of payment attached. Thank you! 💅✨`
-    : `Hi Bloom Skills & Beauty! 🌸\n\nI've just completed my booking online!\n\n👤 *Name:* ${booking.client_name}\n📞 *Phone:* ${booking.client_phone}\n💅 *Service:* ${booking.service_detail}\n📅 *Date:* ${booking.preferred_date}\n⏰ *Time:* ${booking.preferred_time}\n\nPlease find my *R100 deposit* proof of payment attached. See you soon! 💅`;
+    ? [
+        enc("Hi Bloom Skills & Beauty!"),
+        "",
+        enc("I've just enrolled in the *Beginner Nail Course* online!"),
+        "",
+        enc(`*Name:* ${booking.client_name}`),
+        enc(`*Phone:* ${booking.client_phone}`),
+        enc(`*Course:* ${booking.service_detail}`),
+        enc(`*Start Date:* ${booking.preferred_date}`),
+        enc(`*Course Fee:* R${booking.price}`),
+        "",
+        enc("Please find my *R500 registration deposit* proof of payment attached. Thank you!"),
+      ].join(nl)
+    : [
+        enc("Hi Bloom Skills & Beauty!"),
+        "",
+        enc("I've just completed my booking online!"),
+        "",
+        enc(`*Name:* ${booking.client_name}`),
+        enc(`*Phone:* ${booking.client_phone}`),
+        enc(`*Service:* ${booking.service_detail}`),
+        enc(`*Date:* ${booking.preferred_date}`),
+        enc(`*Time:* ${booking.preferred_time}`),
+        "",
+        enc("Please find my *R100 deposit* proof of payment attached. See you soon!"),
+      ].join(nl);
 
   const emailSubject = isCourse
     ? `Course Enrolment - ${booking.client_name}`
@@ -35,7 +61,7 @@ export default function BookingConfirmed() {
     ? `Hi Bloom Skills & Beauty,\n\nI have just enrolled in the Beginner Nail Course online.\n\nName: ${booking.client_name}\nPhone: ${booking.client_phone}\nEmail: ${booking.client_email || "Not provided"}\nCourse: ${booking.service_detail}\nStart Date: ${booking.preferred_date}\nCourse Fee: R${booking.price}\n\nI have attached my R500 registration deposit proof of payment.\n\nThank you!\n${booking.client_name}`
     : `Hi Bloom Skills & Beauty,\n\nI have just completed my booking online.\n\nName: ${booking.client_name}\nPhone: ${booking.client_phone}\nEmail: ${booking.client_email || "Not provided"}\nService: ${booking.service_detail}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\n\nI have attached my R100 deposit proof of payment.\n\nSee you soon!\n${booking.client_name}`;
 
-  const whatsappUrl = `https://wa.me/27798060310?text=${encodeURIComponent(whatsappMsg)}`;
+  const whatsappUrl = `https://wa.me/27798060310?text=${whatsappMsg}`;
   const emailUrl = `mailto:bloomskillsandbeauty@icloud.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
 
   const sendBoth = () => {
