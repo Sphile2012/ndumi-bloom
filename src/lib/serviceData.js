@@ -47,7 +47,7 @@ export const allServices = {
     { name: "French Hands & Toes + Individuals", price: 650 },
   ],
   "Beginner Nail Course": [
-    { name: "2-Week Beginner Course", price: 3500 },
+    { name: "2-Week Beginner Course", price: 1500 },
   ],
 };
 

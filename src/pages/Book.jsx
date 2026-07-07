@@ -37,7 +37,7 @@ export default function Book() {
     client_email: "",
     service_category: isCourseBooking ? "Beginner Nail Course" : "General",
     service_detail: isCourseBooking ? "2-Week Beginner Course" : "Appointment",
-    price: isCourseBooking ? 3500 : 0,
+    price: isCourseBooking ? 1500 : 0,
     preferred_time: "",
     notes: "",
   };

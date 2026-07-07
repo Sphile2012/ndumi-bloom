@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 const stats = [
   { value: "8am–4pm", label: "Daily Hours" },
   { value: "R150+", label: "Starting Price" },
-  { value: "R3,500", label: "Nail Course" },
+  { value: "R1,500", label: "Nail Course" },
 ];
 
 export default function HeroSection({ heroImage }) {
