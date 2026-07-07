@@ -36,7 +36,7 @@ export default function TestimonialsSection() {
             Book your appointment today or enrol in our beginner nail course and start your beauty journey.
           </p>
           <p className="opacity-80 mb-8 max-w-md mx-auto text-sm font-medium">
-            💳 Course & booking fee: <strong>R500 non-refundable</strong>
+            💳 Course & booking fee: <strong>R1500 non-refundable</strong>
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/book">
