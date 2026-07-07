@@ -72,7 +72,7 @@ export default function CoursePreview({ courseImage }) {
             </div>
 
             <p className="text-xs text-muted-foreground mb-6">
-              Registration fee: R500 (non-refundable)
+              Registration fee: R1500 (non-refundable)
             </p>
 
             <Link to="/book?service=course">

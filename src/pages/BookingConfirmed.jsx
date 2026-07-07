@@ -37,7 +37,7 @@ export default function BookingConfirmed() {
         enc(`*Start Date:* ${booking.preferred_date}`),
         enc(`*Course Fee:* R${booking.price}`),
         "",
-        enc("Please find my *R500 registration deposit* proof of payment attached. Thank you!"),
+        enc("Please find my *R1500 registration deposit* proof of payment attached. Thank you!"),
       ].join(nl)
     : [
         enc("Hi Bloom Skills & Beauty!"),
@@ -58,7 +58,7 @@ export default function BookingConfirmed() {
     : `Booking Confirmation - ${booking.client_name}`;
 
   const emailBody = isCourse
-    ? `Hi Bloom Skills & Beauty,\n\nI have just enrolled in the Beginner Nail Course online.\n\nName: ${booking.client_name}\nPhone: ${booking.client_phone}\nEmail: ${booking.client_email || "Not provided"}\nCourse: ${booking.service_detail}\nStart Date: ${booking.preferred_date}\nCourse Fee: R${booking.price}\n\nI have attached my R500 registration deposit proof of payment.\n\nThank you!\n${booking.client_name}`
+    ? `Hi Bloom Skills & Beauty,\n\nI have just enrolled in the Beginner Nail Course online.\n\nName: ${booking.client_name}\nPhone: ${booking.client_phone}\nEmail: ${booking.client_email || "Not provided"}\nCourse: ${booking.service_detail}\nStart Date: ${booking.preferred_date}\nCourse Fee: R${booking.price}\n\nI have attached my R1500 registration deposit proof of payment.\n\nThank you!\n${booking.client_name}`
     : `Hi Bloom Skills & Beauty,\n\nI have just completed my booking online.\n\nName: ${booking.client_name}\nPhone: ${booking.client_phone}\nEmail: ${booking.client_email || "Not provided"}\nService: ${booking.service_detail}\nDate: ${booking.preferred_date}\nTime: ${booking.preferred_time}\n\nI have attached my R100 deposit proof of payment.\n\nSee you soon!\n${booking.client_name}`;
 
   const whatsappUrl = `https://wa.me/27798060310?text=${whatsappMsg}`;
@@ -151,7 +151,7 @@ export default function BookingConfirmed() {
                 <div className="flex justify-between"><span>Reference</span><span className="font-semibold">{booking.client_name}</span></div>
               </div>
               <p className="text-xs text-blue-700 mt-3 font-medium">
-                💳 Deposit: <strong>{isCourse ? "R500 registration fee" : "R100 to secure your slot"}</strong>
+                💳 Deposit: <strong>{isCourse ? "R1500 registration fee" : "R100 to secure your slot"}</strong>
               </p>
             </div>
 
