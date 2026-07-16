@@ -22,7 +22,7 @@ const benefits = [
 
 const stats = [
   { label: "Duration", value: "2 Weeks", emoji: "⏰" },
-  { label: "Course Fee", value: "R3,500", emoji: "💰" },
+  { label: "Course Fee", value: "R1,500", emoji: "💰" },
   { label: "Certificate", value: "Included", emoji: "🎓" },
   { label: "Mentorship", value: "2 Months", emoji: "🤝" },
 ];
@@ -62,7 +62,7 @@ export default function NailCourse() {
             </div>
             <div className="flex items-center gap-3">
               <span className="text-2xl">💰</span>
-              <span className="text-sm text-foreground"><strong>Investment:</strong> R3,500 total (R1500 non-refundable registration)</span>
+              <span className="text-sm text-foreground"><strong>Investment:</strong> R1,500 total (R1500 non-refundable registration)</span>
             </div>
           </div>
           <p className="text-sm text-muted-foreground mb-8">Limited spots available. Enroll today and start your beauty career journey! 🌸</p>

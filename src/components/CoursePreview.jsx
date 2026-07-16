@@ -38,7 +38,7 @@ export default function CoursePreview({ courseImage }) {
               <span>💅</span> Beginner Nail Course <span>🎓</span>
             </h2>
             <div className="flex items-baseline gap-3 mb-6">
-              <span className="font-heading text-4xl font-bold text-primary">R3,500</span>
+              <span className="font-heading text-4xl font-bold text-primary">R1,500</span>
               <span className="text-muted-foreground">• 2 Weeks</span>
             </div>
 

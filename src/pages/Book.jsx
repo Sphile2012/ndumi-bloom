@@ -37,7 +37,7 @@ export default function Book() {
     client_email: "",
     service_category: isCourseBooking ? "Beginner Nail Course" : "General",
     service_detail: isCourseBooking ? "2-Week Beginner Course" : "Appointment",
-    price: isCourseBooking ? 3500 : 0,
+    price: isCourseBooking ? 1500 : 0,
     preferred_time: "",
     notes: "",
   };
@@ -54,6 +54,7 @@ export default function Book() {
   const [error, setError] = useState("");
   const [slotsCache, setSlotsCache] = useState({});
   const [bookingCreated, setBookingCreated] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchBookedSlots = async (selectedDate) => {
     if (!selectedDate) return;
@@ -99,6 +100,19 @@ export default function Book() {
   const handleNext = async () => {
     // Save booking when moving from Confirm (step 3) to Payment (step 4)
     if (step === CONFIRM_STEP) {
+      // Prevent duplicate booking if already created
+      if (bookingCreated) {
+        setStep(step + 1);
+        setError("");
+        return;
+      }
+      
+      // Prevent double-click submissions
+      if (isSubmitting) {
+        return;
+      }
+      
+      setIsSubmitting(true);
       setLoading(true);
       setError("");
       try {
@@ -121,6 +135,7 @@ export default function Book() {
         setError("Could not save your booking. Please check your connection and try again.");
       } finally {
         setLoading(false);
+        setIsSubmitting(false);
       }
     } else {
       setStep(step + 1);
@@ -396,7 +411,7 @@ export default function Book() {
               </Button>
             ) : <div />}
             {!isLastStep ? (
-              <Button onClick={handleNext} disabled={!canProceed() || loading}
+              <Button onClick={handleNext} disabled={!canProceed() || loading || isSubmitting}
                 className="rounded-xl px-6 bg-primary hover:bg-primary/90 text-primary-foreground ml-auto disabled:opacity-50 disabled:cursor-not-allowed">
                 {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : <>Continue <ChevronRight className="w-4 h-4 ml-1" /></>}
               </Button>
