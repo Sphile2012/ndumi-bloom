@@ -72,7 +72,7 @@ export default function CoursePreview({ courseImage }) {
             </div>
 
             <p className="text-xs text-muted-foreground mb-6">
-              Total: R3500 · Registration deposit: R1500 (non-refundable) · Balance: R2000
+              Course Fee: R3,500 · Non-refundable deposit: R1,500 · Balance: R2,000
             </p>
 
             <Link to="/book?service=course">

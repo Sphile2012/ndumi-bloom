@@ -162,7 +162,7 @@ export default function Book() {
           </h1>
           <p className="text-muted-foreground text-sm mt-2">At <span className="italic font-semibold text-foreground">Bloom</span> Skills &amp; Beauty · Sangro House, Durban</p>
           <div className="mt-3 inline-flex items-center gap-2 bg-primary/10 text-primary text-xs font-semibold px-4 py-2 rounded-full">
-            {isCourseBooking ? '💳 R3500 total · R1500 non-refundable deposit to enrol' : '💳 R100 non-refundable deposit required to secure your slot'}
+            {isCourseBooking ? '💳 R3,500 course fee · R1,500 non-refundable deposit to enrol' : '💳 R100 non-refundable deposit required to secure your slot'}
           </div>
         </motion.div>
 
@@ -378,7 +378,7 @@ export default function Book() {
                       <CreditCard className="w-5 h-5 text-primary" /> Pay Your Deposit
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                      {isCourseBooking ? "Pay the R1500 non-refundable deposit to secure your spot (R3500 total course fee)." : "Pay the R100 non-refundable deposit to confirm your booking."}
+                      {isCourseBooking ? "Pay the R1,500 non-refundable deposit to secure your spot (Total course fee: R3,500)." : "Pay the R100 non-refundable deposit to confirm your booking."}
                     </p>
                   </div>
                   <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 text-center">
@@ -389,9 +389,9 @@ export default function Book() {
                   </div>
                   <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
                     <p className="font-semibold mb-1">💳 Deposit Required</p>
-                    <p>Pay <strong>{isCourseBooking ? "R1500 deposit" : "R100"}</strong> via FNB direct transfer{isCourseBooking ? " (balance of R2000 due before course start)" : ""}, then send proof via WhatsApp below.</p>
+                    <p>Pay <strong>{isCourseBooking ? "R1,500 deposit" : "R100"}</strong> via FNB direct transfer{isCourseBooking ? " (balance of R2,000 due before course start)" : ""}, then send proof via WhatsApp below.</p>
                   </div>
-                  <a href={`https://wa.me/27798060310?text=${encodeURIComponent(`Hi Bloom Skills & Beauty! I've just made my ${isCourseBooking ? 'R1500 registration' : 'R100'} deposit for ${form.client_name}.\nDate: ${isCourseBooking ? (dateRange.from ? format(dateRange.from, 'd MMM yyyy') : '') : (date ? format(date, 'd MMM yyyy') : '')}\n\nPlease find my proof of payment attached. Thank you!`)}`}
+                  <a href={`https://wa.me/27798060310?text=${encodeURIComponent(`Hi Bloom Skills & Beauty! I've just made my ${isCourseBooking ? 'R1,500 registration' : 'R100'} deposit for ${form.client_name}.\nDate: ${isCourseBooking ? (dateRange.from ? format(dateRange.from, 'd MMM yyyy') : '') : (date ? format(date, 'd MMM yyyy') : '')}\n\nPlease find my proof of payment attached. Thank you!`)}`}
                     target="_blank" rel="noopener noreferrer" className="block">
                     <button className="w-full py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-medium text-sm transition-colors">
                       💬 Send Proof of Payment via WhatsApp

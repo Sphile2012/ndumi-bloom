@@ -62,7 +62,7 @@ export default function NailCourse() {
             </div>
             <div className="flex items-center gap-3">
               <span className="text-2xl">💰</span>
-              <span className="text-sm text-foreground"><strong>Investment:</strong> R3,500 total (R1,500 non-refundable registration deposit)</span>
+              <span className="text-sm text-foreground"><strong>Course Fee:</strong> R3,500 (R1,500 non-refundable deposit required)</span>
             </div>
           </div>
           <p className="text-sm text-muted-foreground mb-8">Limited spots available. Enroll today and start your beauty career journey! 🌸</p>
@@ -75,8 +75,8 @@ export default function NailCourse() {
             <div className="flex items-center gap-2 px-6 py-3 rounded-full border-2 border-primary bg-primary/5">
               <span className="text-lg">💳</span>
               <div className="text-left">
-                <p className="text-xs text-muted-foreground">Registration Deposit (Balance R2,000)</p>
-                <p className="font-heading text-lg font-bold text-primary">R1,500 Non-Refundable</p>
+                <p className="text-xs text-muted-foreground">Non-refundable Deposit (Total: R3,500)</p>
+                <p className="font-heading text-lg font-bold text-primary">R1,500 Deposit</p>
               </div>
             </div>
           </div>
