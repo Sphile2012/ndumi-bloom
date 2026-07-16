@@ -16,7 +16,7 @@ const services = [
     title: "Nail Course",
     description: "2-week beginner course with certificate, mentorship & training kit included.",
     icon: "💅🎓",
-    from: "R1500",
+    from: "R3500",
     image: aboutImage,
     link: "/nail-course",
   },
