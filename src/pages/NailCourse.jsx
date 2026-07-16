@@ -22,7 +22,7 @@ const benefits = [
 
 const stats = [
   { label: "Duration", value: "2 Weeks", emoji: "⏰" },
-  { label: "Course Fee", value: "R1,500", emoji: "💰" },
+  { label: "Course Fee", value: "R3,500", emoji: "💰" },
   { label: "Certificate", value: "Included", emoji: "🎓" },
   { label: "Mentorship", value: "2 Months", emoji: "🤝" },
 ];
@@ -62,7 +62,7 @@ export default function NailCourse() {
             </div>
             <div className="flex items-center gap-3">
               <span className="text-2xl">💰</span>
-              <span className="text-sm text-foreground"><strong>Investment:</strong> R1,500 total (R1500 non-refundable registration)</span>
+              <span className="text-sm text-foreground"><strong>Investment:</strong> R3,500 total (R1,500 non-refundable registration deposit)</span>
             </div>
           </div>
           <p className="text-sm text-muted-foreground mb-8">Limited spots available. Enroll today and start your beauty career journey! 🌸</p>
@@ -75,8 +75,8 @@ export default function NailCourse() {
             <div className="flex items-center gap-2 px-6 py-3 rounded-full border-2 border-primary bg-primary/5">
               <span className="text-lg">💳</span>
               <div className="text-left">
-                <p className="text-xs text-muted-foreground">Enroll with Registration Deposit</p>
-                <p className="font-heading text-lg font-bold text-primary">R1500 Non-Refundable</p>
+                <p className="text-xs text-muted-foreground">Registration Deposit (Balance R2,000)</p>
+                <p className="font-heading text-lg font-bold text-primary">R1,500 Non-Refundable</p>
               </div>
             </div>
           </div>
