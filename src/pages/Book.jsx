@@ -44,6 +44,7 @@ export default function Book() {
 
   const navigate = useNavigate();
   const cardRef = useRef(null);
+  const submitLockRef = useRef(false);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [date, setDate] = useState(null);
@@ -56,6 +57,8 @@ export default function Book() {
   const [bookingCreated, setBookingCreated] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const normalizeSlot = (value) => (typeof value === "string" ? value.trim() : "");
+
   const fetchBookedSlots = async (selectedDate) => {
     if (!selectedDate) return;
     const dateStr = format(selectedDate, "yyyy-MM-dd");
@@ -63,11 +66,13 @@ export default function Book() {
     setLoadingSlots(true);
     try {
       const result = await ndumie.entities.Booking.filter({ preferred_date: dateStr });
-      // Ensure result is a valid array before using .map()
       const bookings = Array.isArray(result) ? result : [];
-      const slots = bookings
-        .filter(b => b && b.status !== "cancelled")
-        .map(b => b.preferred_time);
+      const slots = [...new Set(
+        bookings
+          .filter(b => b && b.status !== "cancelled")
+          .map(b => normalizeSlot(b.preferred_time))
+          .filter(Boolean)
+      )];
       setSlotsCache(prev => ({ ...prev, [dateStr]: slots }));
       setBookedSlots(slots);
     } catch (err) {
@@ -106,12 +111,25 @@ export default function Book() {
         setError("");
         return;
       }
-      
-      // Prevent double-click submissions
-      if (isSubmitting) {
+
+      // Guard against rapid double-clicks before React re-renders state.
+      if (submitLockRef.current || isSubmitting) {
         return;
       }
-      
+
+      const bookingDate = isCourseBooking ? dateRange.from : date;
+      const bookingTime = isCourseBooking ? "All Day" : normalizeSlot(form.preferred_time);
+
+      if (!isCourseBooking && bookingDate && bookingTime) {
+        const dateStr = format(bookingDate, "yyyy-MM-dd");
+        const takenSlots = slotsCache[dateStr] || [];
+        if (takenSlots.includes(bookingTime)) {
+          setError("This time slot is no longer available. Please choose another one.");
+          return;
+        }
+      }
+
+      submitLockRef.current = true;
       setIsSubmitting(true);
       setLoading(true);
       setError("");
@@ -119,7 +137,7 @@ export default function Book() {
         const bookingData = {
           ...form,
           preferred_date: isCourseBooking ? format(dateRange.from, "yyyy-MM-dd") : format(date, "yyyy-MM-dd"),
-          preferred_time: isCourseBooking ? "All Day" : form.preferred_time,
+          preferred_time: bookingTime,
           notes: isCourseBooking && dateRange.to
             ? `Course end date: ${format(dateRange.to, "yyyy-MM-dd")}`
             : form.notes,
@@ -134,6 +152,7 @@ export default function Book() {
         console.error("Booking error:", err);
         setError("Could not save your booking. Please check your connection and try again.");
       } finally {
+        submitLockRef.current = false;
         setLoading(false);
         setIsSubmitting(false);
       }
@@ -303,19 +322,20 @@ export default function Book() {
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                         {(date && date.getDay() === 6 ? saturdayTimeSlots : timeSlots).map((t) => {
-                          const isBooked = bookedSlots.includes(t);
+                          const normalizedSlot = normalizeSlot(t);
+                          const isBooked = bookedSlots.includes(normalizedSlot);
                           return (
                             <button key={t} type="button" onClick={() => !isBooked && setForm({ ...form, preferred_time: t })}
                               disabled={isBooked}
                               className={`py-2.5 px-3 rounded-xl border-2 text-sm font-medium transition-all ${
                                 isBooked
-                                  ? "border-border bg-muted text-muted-foreground line-through cursor-not-allowed opacity-40"
+                                  ? "border-red-200 bg-red-50 text-red-700 line-through cursor-not-allowed opacity-90"
                                   : form.preferred_time === t
                                   ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20"
                                   : "border-border hover:border-primary/40 text-muted-foreground hover:text-foreground"
                               }`}>
                               {t}
-                              {isBooked && <span className="block text-xs mt-0.5 not-italic opacity-70">Booked</span>}
+                              {isBooked && <span className="block text-xs mt-0.5 not-italic opacity-80">Unavailable</span>}
                             </button>
                           );
                         })}
